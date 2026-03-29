@@ -108,7 +108,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
 
         {/* Example Prompts */}
         <div className="mt-4 flex flex-wrap gap-2 justify-center">
-          <span className={`text-sm ${theme === 'dark' ? 'text-[#a1a1a6]' : 'text-text-secondary'}`}>
+          <span className={`text-sm font-medium ${theme === 'dark' ? 'text-[#a1a1a6]' : 'text-[#595959]'}`}>
             试试：
           </span>
           {examplePrompts.map((prompt) => (
