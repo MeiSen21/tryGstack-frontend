@@ -11,7 +11,7 @@ import {
   CloseOutlined,
   DragOutlined,
 } from '@ant-design/icons';
-import { Button, Dropdown, Select, Popconfirm, Input } from 'antd';
+import { Button, Dropdown, Select, Popconfirm, Input, Tooltip } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { generateEChartsOption } from '../../utils/chartHelper';
 import SQLDisplay from '../SQLDisplay';
@@ -93,11 +93,15 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-[#3d3d3f]">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <DragOutlined
-            className={`cursor-move text-text-tertiary drag-handle ${
-              theme === 'dark' ? 'text-[#6e6e73]' : ''
-            }`}
-          />
+          <Tooltip title="拖拽调整位置">
+            <DragOutlined
+              className={`cursor-move text-lg transition-colors ${
+                theme === 'dark'
+                  ? 'text-[#86868b] hover:text-[#a1a1a6]'
+                  : 'text-[#8c8c8c] hover:text-[#595959]'
+              }`}
+            />
+          </Tooltip>
           {isEditing ? (
             <div className="flex items-center gap-2 flex-1">
               <Input
