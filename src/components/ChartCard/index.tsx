@@ -170,7 +170,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       </div>
 
       {/* SQL Display */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pt-2 pb-4">
         <SQLDisplay
           sql={chart.sql}
           isExpanded={sqlExpanded}

@@ -22,7 +22,7 @@ const SQLDisplay: React.FC<SQLDisplayProps> = ({ sql, isExpanded, onToggle }) =>
   };
 
   return (
-    <div className="mt-3 border rounded-lg overflow-hidden bg-[#fafafa] dark:bg-[#1d1d1f]">
+    <div className="mt-4 border rounded-lg overflow-hidden bg-[#fafafa] dark:bg-[#1d1d1f]">
       {/* Header */}
       <button
         className="w-full flex items-center justify-between px-3 py-2 text-sm text-text-secondary hover:bg-neutral-200 dark:hover:bg-[#2d2d2f] transition-colors"
