@@ -1,7 +1,7 @@
 import type { AIResponse, ChartItem } from '../types';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
-const KIMI_MODEL = 'moonshot-v1-8k';
+const KIMI_MODEL = 'kimi-k2-0905-preview';
 
 const SYSTEM_PROMPT = `你是数据分析师，专门将用户的自然语言需求转换为图表配置JSON和SQL语句。
 
