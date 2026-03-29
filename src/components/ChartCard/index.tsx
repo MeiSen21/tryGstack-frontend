@@ -160,7 +160,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       </div>
 
       {/* Chart Content */}
-      <div className="flex-1 min-h-0 p-4">
+      <div className="flex-1 min-h-0 p-4 pb-12">
         <ReactECharts
           option={chartOption}
           style={{ height: '100%', minHeight: '200px' }}
