@@ -116,7 +116,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3d3d3f]">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Tooltip title="拖拽调整位置">
-            <DragOutlined className={`text-lg cursor-move transition-colors ${
+            <DragOutlined className={`drag-handle text-lg cursor-move transition-colors ${
               theme === 'dark' ? 'text-[#86868b] hover:text-[#a1a1a6]' : 'text-gray-500 hover:text-gray-700'
             }`} />
           </Tooltip>
