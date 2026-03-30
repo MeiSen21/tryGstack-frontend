@@ -43,6 +43,16 @@ export function generateEChartsOption(
       return generateBarOption(baseOption, data, config, theme);
     case 'pie':
       return generatePieOption(baseOption, data, config, theme);
+    case 'scatter':
+      return generateScatterOption(baseOption, data, config, theme);
+    case 'radar':
+      return generateRadarOption(baseOption, data, config, theme);
+    case 'funnel':
+      return generateFunnelOption(baseOption, data, config, theme);
+    case 'gauge':
+      return generateGaugeOption(baseOption, data, config, theme);
+    case 'heatmap':
+      return generateHeatmapOption(baseOption, data, config, theme);
     default:
       return baseOption;
   }
@@ -171,6 +181,403 @@ function generatePieOption(baseOption: any, data: DataPoint[], config: ChartConf
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)',
+          },
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * 散点图配置
+ */
+function generateScatterOption(baseOption: any, data: DataPoint[], config: ChartConfig, theme: 'light' | 'dark') {
+  const textColor = theme === 'dark' ? '#a1a1a6' : '#86868b';
+  const lineColor = theme === 'dark' ? '#444' : '#f0f0f0';
+  
+  // 支持双指标：metrics[0] 为 X 轴，metrics[1] 为 Y 轴
+  const xMetric = config.metrics[0] || { field: 'x', name: 'X轴' };
+  const yMetric = config.metrics[1] || config.metrics[0] || { field: 'y', name: 'Y轴' };
+  const sizeMetric = config.metrics[2]; // 可选的第三指标控制气泡大小
+  
+  const nameField = config.dimensions[0] || 'name';
+
+  return {
+    ...baseOption,
+    grid: {
+      ...baseOption.grid,
+      bottom: '15%',
+    },
+    xAxis: {
+      type: 'value',
+      name: xMetric.name,
+      nameLocation: 'middle',
+      nameGap: 30,
+      axisLine: { lineStyle: { color: lineColor } },
+      axisLabel: { color: textColor },
+      splitLine: { lineStyle: { color: lineColor } },
+    },
+    yAxis: {
+      type: 'value',
+      name: yMetric.name,
+      nameLocation: 'middle',
+      nameGap: 40,
+      axisLine: { lineStyle: { color: lineColor } },
+      axisLabel: { color: textColor },
+      splitLine: { lineStyle: { color: lineColor } },
+    },
+    series: [
+      {
+        name: `${xMetric.name} vs ${yMetric.name}`,
+        type: 'scatter',
+        data: data.map((d) => ({
+          name: d[nameField],
+          value: [d[xMetric.field], d[yMetric.field]],
+          symbolSize: sizeMetric ? Math.sqrt(Number(d[sizeMetric.field]) || 10) * 3 : 15,
+        })),
+        itemStyle: {
+          color: '#1677ff',
+          opacity: 0.7,
+        },
+        emphasis: {
+          itemStyle: {
+            opacity: 1,
+            borderColor: '#fff',
+            borderWidth: 2,
+          },
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * 雷达图配置
+ */
+function generateRadarOption(baseOption: any, data: DataPoint[], config: ChartConfig, theme: 'light' | 'dark') {
+  const textColor = theme === 'dark' ? '#a1a1a6' : '#86868b';
+  
+  // 维度作为雷达图的指标轴
+  const indicators = config.dimensions.map((dim) => {
+    const values = data.map((d) => Number(d[dim]) || 0);
+    const max = Math.max(...values, 100);
+    return {
+      name: dim,
+      max: Math.ceil(max * 1.1),
+    };
+  });
+
+  // 每条数据是一个系列
+  const seriesData = data.map((d) => ({
+    name: d.name || d[config.dimensions[0]] || '数据',
+    value: config.dimensions.map((dim) => Number(d[dim]) || 0),
+  }));
+
+  return {
+    ...baseOption,
+    tooltip: {
+      trigger: 'item',
+    },
+    legend: {
+      show: true,
+      bottom: 10,
+      textStyle: { color: textColor },
+    },
+    radar: {
+      indicator: indicators,
+      radius: '65%',
+      center: ['50%', '45%'],
+      axisName: {
+        color: textColor,
+      },
+      splitArea: {
+        areaStyle: {
+          color: theme === 'dark' 
+            ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']
+            : ['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.05)'],
+        },
+      },
+    },
+    series: [
+      {
+        type: 'radar',
+        data: seriesData,
+        areaStyle: { opacity: 0.2 },
+        lineStyle: { width: 2 },
+        symbol: 'circle',
+        symbolSize: 6,
+      },
+    ],
+  };
+}
+
+/**
+ * 漏斗图配置
+ */
+function generateFunnelOption(baseOption: any, data: DataPoint[], config: ChartConfig, theme: 'light' | 'dark') {
+  const nameField = config.dimensions[0] || 'stage';
+  const metric = config.metrics[0] || { field: 'count', name: '数量' };
+  
+  // 漏斗图数据需要从大到小排序
+  const sortedData = [...data].sort((a, b) => Number(b[metric.field]) - Number(a[metric.field]));
+
+  return {
+    ...baseOption,
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+    },
+    legend: {
+      show: true,
+      bottom: 10,
+      textStyle: { 
+        color: theme === 'dark' ? '#a1a1a6' : '#86868b' 
+      },
+    },
+    series: [
+      {
+        name: metric.name,
+        type: 'funnel',
+        left: '10%',
+        top: 20,
+        bottom: 60,
+        width: '80%',
+        min: 0,
+        max: Number(sortedData[0]?.[metric.field]) || 100,
+        minSize: '0%',
+        maxSize: '100%',
+        sort: 'descending',
+        gap: 2,
+        label: {
+          show: true,
+          position: 'inside',
+          formatter: '{b}\n{c}',
+          color: '#fff',
+        },
+        labelLine: {
+          length: 10,
+          lineStyle: {
+            width: 1,
+            type: 'solid',
+          },
+        },
+        itemStyle: {
+          borderColor: theme === 'dark' ? '#2d2d2f' : '#fff',
+          borderWidth: 1,
+        },
+        emphasis: {
+          label: {
+            fontSize: 14,
+            fontWeight: 'bold',
+          },
+        },
+        data: sortedData.map((d) => ({
+          name: d[nameField],
+          value: d[metric.field],
+        })),
+      },
+    ],
+  };
+}
+
+/**
+ * 仪表盘配置
+ */
+function generateGaugeOption(baseOption: any, data: DataPoint[], config: ChartConfig, theme: 'light' | 'dark') {
+  const textColor = theme === 'dark' ? '#fff' : '#1d1d1f';
+  const metric = config.metrics[0] || { field: 'value', name: '数值' };
+  
+  // 取第一条数据的值
+  const value = Number(data[0]?.[metric.field]) || 0;
+  const name = data[0]?.name || metric.name;
+
+  return {
+    ...baseOption,
+    tooltip: {
+      formatter: '{a} <br/>{b} : {c}%',
+    },
+    series: [
+      {
+        name: metric.name,
+        type: 'gauge',
+        radius: '80%',
+        center: ['50%', '55%'],
+        min: 0,
+        max: 100,
+        startAngle: 200,
+        endAngle: -20,
+        splitNumber: 10,
+        itemStyle: {
+          color: '#1677ff',
+        },
+        progress: {
+          show: true,
+          roundCap: true,
+          width: 18,
+        },
+        pointer: {
+          icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+          length: '12%',
+          width: 20,
+          offsetCenter: [0, '-60%'],
+          itemStyle: {
+            color: 'auto',
+          },
+        },
+        axisLine: {
+          roundCap: true,
+          lineStyle: {
+            width: 18,
+            color: theme === 'dark' ? [[1, 'rgba(255,255,255,0.1)']] : [[1, '#e5e5e7']],
+          },
+        },
+        axisTick: {
+          splitNumber: 2,
+          lineStyle: {
+            width: 2,
+            color: '#999',
+          },
+        },
+        splitLine: {
+          length: 12,
+          lineStyle: {
+            width: 3,
+            color: 'auto',
+          },
+        },
+        axisLabel: {
+          distance: 30,
+          color: '#999',
+          fontSize: 12,
+        },
+        title: {
+          show: true,
+          offsetCenter: [0, '20%'],
+          fontSize: 16,
+          color: textColor,
+        },
+        detail: {
+          backgroundColor: theme === 'dark' ? '#2d2d2f' : '#fff',
+          borderColor: theme === 'dark' ? '#444' : '#999',
+          borderWidth: 1,
+          width: '60%',
+          lineHeight: 40,
+          height: 40,
+          borderRadius: 8,
+          offsetCenter: [0, '50%'],
+          valueAnimation: true,
+          formatter: function (value: number) {
+            return '{value|' + value.toFixed(1) + '}{unit|%' + '}';
+          },
+          rich: {
+            value: {
+              fontSize: 28,
+              fontWeight: 'bolder',
+              color: 'auto',
+            },
+            unit: {
+              fontSize: 14,
+              color: '#999',
+              padding: [0, 0, -10, 5],
+            },
+          },
+        },
+        data: [
+          {
+            value: value,
+            name: name,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * 热力图配置
+ */
+function generateHeatmapOption(baseOption: any, data: DataPoint[], config: ChartConfig, theme: 'light' | 'dark') {
+  const textColor = theme === 'dark' ? '#a1a1a6' : '#86868b';
+  const lineColor = theme === 'dark' ? '#444' : '#f0f0f0';
+  
+  // 假设 dimensions[0] 是 X 轴，dimensions[1] 是 Y 轴
+  const xField = config.dimensions[0] || 'x';
+  const yField = config.dimensions[1] || 'y';
+  const valueField = config.metrics[0]?.field || 'value';
+  
+  // 提取唯一的 X 和 Y 值
+  const xValues = [...new Set(data.map((d) => String(d[xField])))];
+  const yValues = [...new Set(data.map((d) => String(d[yField])))];
+  
+  // 构建热力图数据 [[xIndex, yIndex, value], ...]
+  const heatmapData = data.map((d) => [
+    xValues.indexOf(String(d[xField])),
+    yValues.indexOf(String(d[yField])),
+    Number(d[valueField]) || 0,
+  ]);
+
+  return {
+    ...baseOption,
+    tooltip: {
+      position: 'top',
+      formatter: (params: any) => {
+        const xName = xValues[params.value[0]];
+        const yName = yValues[params.value[1]];
+        return `${xName} × ${yName}<br/>${params.value[2]}`;
+      },
+    },
+    grid: {
+      ...baseOption.grid,
+      top: '10%',
+      bottom: '15%',
+    },
+    xAxis: {
+      type: 'category',
+      data: xValues,
+      splitArea: {
+        show: true,
+      },
+      axisLine: { lineStyle: { color: lineColor } },
+      axisLabel: { color: textColor },
+    },
+    yAxis: {
+      type: 'category',
+      data: yValues,
+      splitArea: {
+        show: true,
+      },
+      axisLine: { lineStyle: { color: lineColor } },
+      axisLabel: { color: textColor },
+    },
+    visualMap: {
+      min: 0,
+      max: Math.max(...data.map((d) => Number(d[valueField]) || 0), 100),
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: '0%',
+      textStyle: {
+        color: textColor,
+      },
+      inRange: {
+        color: theme === 'dark'
+          ? ['#1a237e', '#0d47a1', '#1976d2', '#42a5f5', '#90caf9']
+          : ['#e3f2fd', '#90caf9', '#42a5f5', '#1976d2', '#0d47a1'],
+      },
+    },
+    series: [
+      {
+        name: config.metrics[0]?.name || '数值',
+        type: 'heatmap',
+        data: heatmapData,
+        label: {
+          show: true,
+          color: theme === 'dark' ? '#fff' : '#333',
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
             shadowColor: 'rgba(0, 0, 0, 0.5)',
           },
         },

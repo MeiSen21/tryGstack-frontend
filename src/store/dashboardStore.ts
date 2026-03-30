@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ChartItem, GridPosition, Workspace } from '../types';
+import { DataEngine } from '../engine/DataEngine';
 
 interface DashboardState {
   charts: ChartItem[];
@@ -22,6 +23,7 @@ interface DashboardActions {
   setError: (error: string | null) => void;
   updateChartType: (id: string, type: ChartItem['type']) => void;
   updateChartTitle: (id: string, title: string) => void;
+  refreshChartData: (id: string) => Promise<void>;
   // Workspace actions
   addWorkspace: (workspace: Workspace) => void;
   updateWorkspace: (id: string, updates: Partial<Workspace>) => void;
@@ -186,6 +188,59 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
       loadWorkspace: (id) => {
         const { setCurrentWorkspace } = get();
         setCurrentWorkspace(id);
+      },
+
+      refreshChartData: async (id: string) => {
+        const state = get();
+        const chart = state.charts.find((c) => c.id === id);
+        if (!chart || !chart.dataSource) {
+          throw new Error('Chart or dataSource not found');
+        }
+
+        const dataEngine = new DataEngine();
+        
+        // Fetch fresh data - 转换 DataSourceInfo 为 DataSourceConfig
+        const dataSourceConfig = {
+          dataset: chart.dataSource.dataset,
+          dimensions: chart.dimensions || ['date'],
+          metrics: chart.metrics || [{ field: 'sales', name: '销售额', aggregation: 'sum' }],
+          timeRange: chart.dataSource.timeRange?.start ? 
+            `${chart.dataSource.timeRange.start}_${chart.dataSource.timeRange.end}` : 
+            '7d',
+        };
+        const rawData = await dataEngine.fetch(dataSourceConfig);
+        
+        // Transform data based on chart config
+        const transformConfig = chart.transform || {
+          xDimension: chart.dimensions?.[0] || 'date',
+          metric: chart.metrics?.[0]?.field || 'sales',
+          aggregation: chart.metrics?.[0]?.aggregation || 'sum',
+        };
+        
+        const chartData = dataEngine.transform(rawData, transformConfig, chart.type);
+        
+        // Update chart with new data
+        const updatedChart: ChartItem = {
+          ...chart,
+          data: chartData,
+          dataSource: {
+            ...chart.dataSource,
+            recordCount: rawData.length,
+            lastUpdated: Date.now(),
+          },
+        };
+        
+        const newCharts = state.charts.map((c) =>
+          c.id === id ? updatedChart : c
+        );
+        
+        const updatedWorkspaces = state.workspaces.map((ws) =>
+          ws.id === state.currentWorkspaceId
+            ? { ...ws, charts: newCharts, updatedAt: Date.now() }
+            : ws
+        );
+        
+        set({ charts: newCharts, workspaces: updatedWorkspaces });
       },
     }),
     {
