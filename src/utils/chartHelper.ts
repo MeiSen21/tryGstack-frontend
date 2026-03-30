@@ -601,7 +601,7 @@ export function getNextGridPosition(
 ): { x: number; y: number; w: number; h: number } {
   const cols = 12;
   const defaultW = 6;
-  const defaultH = 8;
+  const defaultH = 10;
 
   if (existingCharts.length === 0) {
     return { x: 0, y: 0, w: defaultW, h: defaultH };

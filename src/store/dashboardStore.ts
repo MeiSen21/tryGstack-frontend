@@ -3,6 +3,11 @@ import { persist } from 'zustand/middleware';
 import type { ChartItem, GridPosition, Workspace } from '../types';
 import { DataEngine } from '../engine/DataEngine';
 
+interface PendingChart {
+  id: string;
+  title: string;
+}
+
 interface DashboardState {
   charts: ChartItem[];
   theme: 'light' | 'dark';
@@ -10,6 +15,7 @@ interface DashboardState {
   currentWorkspaceId: string | null;
   isLoading: boolean;
   error: string | null;
+  pendingChart: PendingChart | null;
 }
 
 interface DashboardActions {
@@ -30,6 +36,7 @@ interface DashboardActions {
   removeWorkspace: (id: string) => void;
   setCurrentWorkspace: (id: string) => void;
   loadWorkspace: (id: string) => void;
+  setPendingChart: (pending: PendingChart | null) => void;
 }
 
 const initialState: DashboardState = {
@@ -49,6 +56,7 @@ const initialState: DashboardState = {
   currentWorkspaceId: 'default',
   isLoading: false,
   error: null,
+  pendingChart: null,
 };
 
 export const useDashboardStore = create<DashboardState & DashboardActions>()(
@@ -189,6 +197,8 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         const { setCurrentWorkspace } = get();
         setCurrentWorkspace(id);
       },
+
+      setPendingChart: (pending) => set({ pendingChart: pending }),
 
       refreshChartData: async (id: string) => {
         const state = get();

@@ -25,7 +25,7 @@ export function useAIRecommendations(): UseAIRecommendationsReturn {
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [showPanel, setShowPanel] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
-  const { charts, addChart } = useDashboardStore();
+  const { charts, addChart, setPendingChart } = useDashboardStore();
 
   /**
    * 获取 AI 推荐列表
@@ -57,6 +57,18 @@ export function useAIRecommendations(): UseAIRecommendationsReturn {
     setIsLoading(true);
     // 立即关闭弹窗，避免用户感觉卡住
     setShowPanel(false);
+    
+    // 创建 pending 状态，显示骨架屏
+    const pendingId = generateId();
+    setPendingChart({ id: pendingId, title: recommendation.title });
+    
+    // 滚动到 Dashboard 区域
+    setTimeout(() => {
+      const dashboard = document.querySelector('.layout');
+      if (dashboard) {
+        dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
 
     try {
       // 1. 生成完整的图表配置
@@ -99,8 +111,15 @@ export function useAIRecommendations(): UseAIRecommendationsReturn {
       // 4. 添加到 store
       addChart(chartItem);
 
-      // 5. 清空推荐列表
+      // 5. 清空推荐列表和 pending 状态
       setRecommendations([]);
+      setPendingChart(null);
+      
+      // 滚动到新图表
+      setTimeout(() => {
+        const newChartElement = document.querySelector(`[data-grid-id="${chartItem.id}"]`);
+        newChartElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
 
       message.success('图表已生成');
       return chartItem;
@@ -108,11 +127,13 @@ export function useAIRecommendations(): UseAIRecommendationsReturn {
       const errorMessage = err instanceof Error ? err.message : '生成图表失败';
       message.error(errorMessage);
       console.error('生成图表失败:', err);
+      setPendingChart(null);
+      setPendingChart(null);
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [currentInput, charts, addChart]);
+  }, [currentInput, charts, addChart, setPendingChart]);
 
   /**
    * 关闭推荐面板
