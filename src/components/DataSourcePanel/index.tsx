@@ -115,11 +115,11 @@ export const DataSourcePanel: React.FC<DataSourcePanelProps> = ({
 
   return (
     <Card 
-      className="bg-gray-50 rounded-lg"
+      className="bg-gray-50 rounded-lg h-full"
       size="small"
       title={
-        <Space>
-          <DatabaseOutlined className="text-blue-500" />
+        <Space className="py-1">
+          <DatabaseOutlined className="text-blue-500 text-sm" />
           <span className="text-sm font-medium">数据源信息</span>
         </Space>
       }
@@ -129,43 +129,58 @@ export const DataSourcePanel: React.FC<DataSourcePanelProps> = ({
             <Button
               type="text"
               size="small"
-              icon={<ReloadOutlined spin={loading} />}
+              icon={<ReloadOutlined spin={loading} className="text-xs" />}
               onClick={onRefresh}
               disabled={loading}
+              className="flex items-center justify-center"
             />
           </Tooltip>
         )
       }
+      styles={{
+        body: { padding: '12px' }
+      }}
     >
       {/* 数据集信息 */}
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl text-xl text-white"
+      <div className="mb-5">
+        <div className="flex items-start gap-3 mb-3">
+          <div 
+            className="flex items-center justify-center w-10 h-10 rounded-xl text-lg text-white flex-shrink-0 mt-0.5"
             style={{ background: 'linear-gradient(135deg, #1890ff 0%, #36cfc9 100%)' }}
           >
             {info.icon}
           </div>
-          <div className="flex-1">
-            <Text strong className="block text-base">{info.name}</Text>
+          <div className="flex-1 min-w-0 pt-0.5">
+            <Text strong className="block text-sm mb-0.5">{info.name}</Text>
             <Badge 
               status="success" 
               text={<Text type="secondary" className="text-xs">{info.recordCount} 条记录</Text>}
             />
           </div>
         </div>
-        <Paragraph type="secondary" className="text-xs leading-5 mb-0">
+        <Paragraph 
+          type="secondary" 
+          className="text-xs leading-relaxed mb-0"
+          style={{ marginBottom: 0 }}
+        >
           {info.description}
         </Paragraph>
       </div>
 
       {/* 图表类型 */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 font-medium">
+      <div className="mb-5">
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2.5 font-medium">
           <BarChartOutlined className="text-xs" />
-          图表类型
+          <span>图表类型</span>
         </div>
-        <Tag className="text-sm px-3 py-1 rounded"
-          style={{ background: '#e6f7ff', borderColor: '#91d5ff', color: '#096dd9' }}
+        <Tag 
+          className="text-xs px-2.5 py-1 rounded"
+          style={{ 
+            background: '#e6f7ff', 
+            borderColor: '#91d5ff', 
+            color: '#096dd9',
+            lineHeight: '1.5'
+          }}
           icon={chartIcons[chartType]}
         >
           {chartNames[chartType]}
@@ -173,38 +188,51 @@ export const DataSourcePanel: React.FC<DataSourcePanelProps> = ({
       </div>
 
       {/* 可用维度 */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 font-medium">
+      <div className="mb-5">
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2.5 font-medium">
           <InfoCircleOutlined className="text-xs" />
-          分析维度
+          <span>分析维度</span>
           <Tooltip title="可用于分组和筛选的字段">
-            <InfoCircleOutlined className="text-xs opacity-60 cursor-help hover:opacity-100" />
+            <InfoCircleOutlined className="text-xs opacity-50 cursor-help hover:opacity-80" />
           </Tooltip>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {dimensions.map(dim => (
-            <Tag key={dim} className="text-xs bg-gray-100 border-gray-300 text-gray-700">{dim}</Tag>
+            <Tag 
+              key={dim} 
+              className="text-xs bg-gray-100 border-gray-300 text-gray-700 px-2 py-0.5"
+              style={{ lineHeight: '1.6' }}
+            >
+              {dim}
+            </Tag>
           ))}
         </div>
       </div>
 
       {/* 可用指标 */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 font-medium">
+      <div className="mb-5">
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2.5 font-medium">
           <BarChartOutlined className="text-xs" />
-          数据指标
+          <span>数据指标</span>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {metrics.map(metric => (
-            <Tag key={metric} color="blue" className="text-xs">{metric}</Tag>
+            <Tag 
+              key={metric} 
+              color="blue" 
+              className="text-xs px-2 py-0.5"
+              style={{ lineHeight: '1.6' }}
+            >
+              {metric}
+            </Tag>
           ))}
         </div>
       </div>
 
       {/* 数据状态 */}
       {(recordCount !== undefined || lastUpdated) && (
-        <div className="pt-3 border-t border-dashed border-gray-300">
-          <div className="flex items-center gap-2 mb-1.5">
+        <div className="pt-4 border-t border-dashed border-gray-300">
+          <div className="flex items-center gap-2 mb-2">
             <FileTextOutlined className="text-xs text-gray-500" />
             <Text type="secondary" className="text-xs">当前数据: {recordCount?.toLocaleString() || '-'} 条</Text>
           </div>

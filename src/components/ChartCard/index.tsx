@@ -178,19 +178,19 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4 p-4">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-5 p-5">
         {/* 图表区域 */}
-        <div className="min-h-[250px] overflow-hidden">
+        <div className="min-h-[280px] overflow-hidden">
           <ReactECharts
             option={chartOption}
-            style={{ height: '100%', minHeight: '250px' }}
+            style={{ height: '100%', minHeight: '280px' }}
             opts={{ renderer: 'canvas' }}
             theme={theme}
           />
         </div>
 
         {/* 数据源面板 */}
-        <div className="lg:max-w-full">
+        <div className="lg:max-w-full h-full">
           <DataSourcePanel
             dataset={dataset}
             chartType={chart.type as ChartType}
