@@ -55,6 +55,8 @@ export function useAIRecommendations(): UseAIRecommendationsReturn {
     recommendation: AIRecommendation
   ): Promise<ChartItem | null> => {
     setIsLoading(true);
+    // 立即关闭弹窗，避免用户感觉卡住
+    setShowPanel(false);
 
     try {
       // 1. 生成完整的图表配置
@@ -97,8 +99,7 @@ export function useAIRecommendations(): UseAIRecommendationsReturn {
       // 4. 添加到 store
       addChart(chartItem);
 
-      // 5. 关闭面板
-      setShowPanel(false);
+      // 5. 清空推荐列表
       setRecommendations([]);
 
       message.success('图表已生成');
