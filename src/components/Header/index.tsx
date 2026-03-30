@@ -6,18 +6,31 @@ import {
   SunOutlined,
   PlusOutlined,
   DeleteOutlined,
+  LoginOutlined,
+  LogoutOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
-import { Button, Tooltip, Space, Popconfirm } from 'antd';
+import { Button, Tooltip, Space, Popconfirm, Avatar, Dropdown } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
+import { useAuthStore } from '../../store/authStore';
 import WorkspaceSelector from '../WorkspaceSelector';
 import { generateShareLink } from '../../services/aiService';
 
 interface HeaderProps {
   onShare?: () => void;
+  isAuthenticated?: boolean;
+  onLoginClick?: () => void;
+  onLogout?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onShare }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  onShare, 
+  isAuthenticated = false, 
+  onLoginClick,
+  onLogout 
+}) => {
   const { theme, setTheme, charts, clearAll } = useDashboardStore();
+  const { user } = useAuthStore();
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -116,6 +129,46 @@ const Header: React.FC<HeaderProps> = ({ onShare }) => {
         >
           新建图表
         </Button>
+
+        <div className="h-6 w-px bg-border" />
+
+        {/* Auth Buttons */}
+        {isAuthenticated ? (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'email',
+                  label: user?.email,
+                  disabled: true,
+                },
+                {
+                  key: 'logout',
+                  label: '退出登录',
+                  icon: <LogoutOutlined />,
+                  onClick: onLogout,
+                },
+              ],
+            }}
+            placement="bottomRight"
+          >
+            <Avatar
+              icon={<UserOutlined />}
+              className="cursor-pointer bg-primary"
+            />
+          </Dropdown>
+        ) : (
+          <Tooltip title="登录">
+            <Button
+              type="text"
+              icon={<LoginOutlined />}
+              onClick={onLoginClick}
+              className={theme === 'dark' ? 'text-[#a1a1a6]' : ''}
+            >
+              登录
+            </Button>
+          </Tooltip>
+        )}
       </Space>
     </header>
   );

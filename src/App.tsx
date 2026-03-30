@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ConfigProvider, theme as antdTheme, Modal, message } from 'antd';
 import { useDashboardStore } from './store/dashboardStore';
+import { useAuthStore } from './store/authStore';
 import { parseShareLink } from './services/aiService';
 import Header from './components/Header';
 import InputArea from './components/InputArea';
 import Dashboard from './components/Dashboard';
+import LoginModal from './components/Auth/LoginModal';
 import { generateShareLink } from './services/aiService';
 import './index.css';
 
@@ -12,11 +14,15 @@ const { defaultAlgorithm, darkAlgorithm } = antdTheme;
 
 function App() {
   const { theme, charts, addChart, clearAll } = useDashboardStore();
+  const { isAuthenticated, initAuth, setAuth, clearAuth } = useAuthStore();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
 
-  // Check for shared link on mount
+  // Check for shared link on mount and init auth
   useEffect(() => {
+    initAuth();
+    
     const search = window.location.search;
     if (search) {
       const sharedCharts = parseShareLink(search);
@@ -54,6 +60,16 @@ function App() {
     }
   };
 
+  const handleLoginSuccess = (token: string, user: any) => {
+    setAuth(token, user);
+    message.success('欢迎回来！');
+  };
+
+  const handleLogout = () => {
+    clearAuth();
+    message.success('已退出登录');
+  };
+
   return (
     <ConfigProvider
       theme={{
@@ -74,7 +90,12 @@ function App() {
           theme === 'dark' ? 'bg-[#1d1d1f]' : 'bg-background'
         }`}
       >
-        <Header onShare={handleShare} />
+        <Header 
+          onShare={handleShare} 
+          isAuthenticated={isAuthenticated}
+          onLoginClick={() => setIsLoginModalOpen(true)}
+          onLogout={handleLogout}
+        />
         <InputArea />
         <Dashboard />
 
@@ -108,6 +129,13 @@ function App() {
             </div>
           </div>
         </Modal>
+
+        {/* Login Modal */}
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
       </div>
     </ConfigProvider>
   );
