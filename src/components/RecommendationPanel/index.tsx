@@ -141,18 +141,21 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
     <Card 
       className="bg-white rounded-xl shadow-lg"
       title={
-        <Space>
-          <BulbOutlined style={{ color: '#faad14' }} />
-          <span>AI 推荐的可视化方案</span>
+        <Space size="small">
+          <BulbOutlined style={{ color: '#faad14', fontSize: 18 }} />
+          <span className="font-medium">AI 推荐的可视化方案</span>
         </Space>
       }
       extra={
-        <Button type="link" onClick={onCancel}>
+        <Button type="link" onClick={onCancel} className="px-0">
           取消
         </Button>
       }
+      styles={{
+        body: { padding: '20px 24px' }
+      }}
     >
-      <Paragraph type="secondary" className="mb-5 text-sm">
+      <Paragraph type="secondary" className="mb-6 text-sm leading-relaxed">
         根据 "<Text strong>{input}</Text>"，AI 为您推荐以下 {recommendations.length} 个可视化方案：
       </Paragraph>
 
@@ -161,24 +164,29 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
         value={selectedIndex}
         onChange={(e) => setSelectedIndex(e.target.value)}
       >
-        <Space direction="vertical" size="middle" className="w-full">
+        <Space direction="vertical" size="large" className="w-full">
           {recommendations.map((rec, index) => (
             <Radio.Button
               key={index}
               value={index}
-              className={`w-full h-auto p-4 pb-5 rounded-lg border-2 transition-all duration-300 text-left ${
+              className={`w-full h-auto rounded-xl border-2 transition-all duration-300 text-left overflow-hidden ${
                 selectedIndex === index 
-                  ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50' 
-                  : 'border-gray-200 hover:border-blue-400'
+                  ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm' 
+                  : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
               }`}
-              style={{ display: 'block', minHeight: 'auto', height: 'auto' }}
+              style={{ 
+                display: 'block', 
+                minHeight: 'auto', 
+                height: 'auto',
+                padding: '20px 24px'
+              }}
             >
-              <div className="flex items-start gap-4">
-                {/* 左侧：图标和类型 */}
+              <div className="flex items-start gap-5">
+                {/* 左侧：图标 */}
                 <div 
-                  className="flex items-center justify-center w-12 h-12 rounded-xl text-2xl flex-shrink-0"
+                  className="flex items-center justify-center w-14 h-14 rounded-xl text-2xl flex-shrink-0"
                   style={{ 
-                    backgroundColor: `${chartColors[rec.type]}20`, 
+                    backgroundColor: `${chartColors[rec.type]}15`, 
                     color: chartColors[rec.type] 
                   }}
                 >
@@ -186,37 +194,53 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
                 </div>
 
                 {/* 中间：详情 */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Text strong className="text-base">{rec.title}</Text>
-                    <Tag color={chartColors[rec.type]}>{chartNames[rec.type]}</Tag>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  {/* 标题行 */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <Text strong className="text-base leading-tight flex-1">{rec.title}</Text>
+                    <Tag 
+                      color={chartColors[rec.type]} 
+                      className="m-0 flex-shrink-0"
+                      style={{ borderRadius: 4 }}
+                    >
+                      {chartNames[rec.type]}
+                    </Tag>
                   </div>
                   
-                  <div className="flex items-center gap-3 mb-3">
-                    <Tag>数据集: {rec.preview?.dataset || 'sales'}</Tag>
+                  {/* 元信息行 */}
+                  <div className="flex items-center gap-4 mb-4">
                     <Text type="secondary" className="text-xs">
-                      匹配度: {Math.round(rec.confidence * 100)}%
+                      数据集: <Text strong className="text-xs">{rec.preview?.dataset || 'sales'}</Text>
+                    </Text>
+                    <Text type="secondary" className="text-xs">
+                      匹配度: <Text strong className="text-xs" style={{ color: '#52c41a' }}>{Math.round(rec.confidence * 100)}%</Text>
                     </Text>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 mb-3">
+                  {/* 推荐理由 */}
+                  <div className="flex flex-col gap-2 mb-4">
                     {rec.reason.map((r, i) => (
-                      <div key={i} className="flex items-start gap-2">
+                      <div key={i} className="flex items-start gap-2.5">
                         <CheckCircleFilled className="text-green-500 text-sm mt-0.5 flex-shrink-0" />
-                        <Text type="secondary" className="text-xs leading-5">{r}</Text>
+                        <Text type="secondary" className="text-sm leading-relaxed">{r}</Text>
                       </div>
                     ))}
                   </div>
 
-                  <Text type="secondary" className="text-xs block px-3 py-2 bg-gray-100 rounded truncate">
-                    {rec.preview?.description}
-                  </Text>
+                  {/* 描述 */}
+                  {rec.preview?.description && (
+                    <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <Text type="secondary" className="text-xs block truncate">
+                        {rec.preview.description}
+                      </Text>
+                    </div>
+                  )}
                 </div>
 
                 {/* 右侧：选中标记 */}
                 {selectedIndex === index && (
-                  <div className="flex items-center justify-center w-10 flex-shrink-0">
-                    <CheckCircleFilled style={{ color: '#52c41a', fontSize: 20 }} />
+                  <div className="flex items-start justify-center w-8 flex-shrink-0 pt-1">
+                    <CheckCircleFilled style={{ color: '#52c41a', fontSize: 22 }} />
                   </div>
                 )}
               </div>
@@ -225,8 +249,8 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
         </Space>
       </Radio.Group>
 
-      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-        <Button onClick={onCancel}>
+      <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-gray-200">
+        <Button onClick={onCancel} size="large">
           取消
         </Button>
         <Button 
