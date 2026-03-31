@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ChartItem, GridPosition, Workspace } from '../types';
 import { DataEngine } from '../engine/DataEngine';
+import { workspaceApi } from '../services/workspaceApi';
+import { isCacheValid, updateLastSynced } from '../utils/cacheManager';
+import { flushQueue, hasPendingChanges } from '../utils/syncQueue';
+import { withSync } from './withSync';
+import { useAuthStore } from './authStore';
 
 interface PendingChart {
   id: string;
@@ -16,6 +21,10 @@ interface DashboardState {
   isLoading: boolean;
   error: string | null;
   pendingChart: PendingChart | null;
+  // 新增：同步相关状态
+  syncStatus: 'idle' | 'syncing' | 'error';
+  lastSyncedAt: number | null;
+  syncedUserId: string | null;
 }
 
 interface DashboardActions {
@@ -37,6 +46,11 @@ interface DashboardActions {
   setCurrentWorkspace: (id: string) => void;
   loadWorkspace: (id: string) => void;
   setPendingChart: (pending: PendingChart | null) => void;
+  // 新增：云端同步 actions
+  fetchWorkspaces: () => Promise<void>;
+  syncCurrentWorkspace: () => Promise<void>;
+  setSyncStatus: (status: 'idle' | 'syncing' | 'error') => void;
+  clearPendingChanges: () => void;
 }
 
 const initialState: DashboardState = {
@@ -57,17 +71,20 @@ const initialState: DashboardState = {
   isLoading: false,
   error: null,
   pendingChart: null,
+  // 新增：同步初始状态
+  syncStatus: 'idle',
+  lastSyncedAt: null,
+  syncedUserId: null,
 };
 
 export const useDashboardStore = create<DashboardState & DashboardActions>()(
   persist(
-    (set, get) => ({
+    withSync((set, get) => ({
       ...initialState,
 
       addChart: (chart) =>
         set((state) => {
           const newCharts = [...state.charts, chart];
-          // Also update current workspace
           const updatedWorkspaces = state.workspaces.map((ws) =>
             ws.id === state.currentWorkspaceId
               ? { ...ws, charts: newCharts, updatedAt: Date.now() }
@@ -171,7 +188,6 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
       removeWorkspace: (id) =>
         set((state) => {
           const newWorkspaces = state.workspaces.filter((ws) => ws.id !== id);
-          // If removing current workspace, switch to default
           const newCurrentId =
             state.currentWorkspaceId === id
               ? newWorkspaces.find((ws) => ws.isDefault)?.id || newWorkspaces[0]?.id
@@ -200,6 +216,129 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
 
       setPendingChart: (pending) => set({ pendingChart: pending }),
 
+      // 新增：从云端获取工作区
+      fetchWorkspaces: async () => {
+        const { user, isAuthenticated } = useAuthStore.getState();
+        
+        if (!isAuthenticated || !user) {
+          console.log('[DashboardStore] 用户未登录，跳过同步');
+          return;
+        }
+
+        // 检查缓存是否有效
+        if (isCacheValid()) {
+          console.log('[DashboardStore] 缓存有效，使用本地数据');
+          set({ syncStatus: 'idle', syncedUserId: user.id });
+          return;
+        }
+
+        console.log('[DashboardStore] 开始从云端获取工作区...');
+        set({ syncStatus: 'syncing' });
+
+        try {
+          // 先执行待同步队列
+          if (hasPendingChanges()) {
+            await flushQueue();
+          }
+
+          // 从云端获取工作区
+          const result = await workspaceApi.fetchAll();
+
+          if (result.success && result.workspaces) {
+            console.log('[DashboardStore] 获取工作区成功:', result.workspaces.length);
+            
+            // 如果云端没有工作区，保留本地默认工作区
+            const workspaces = result.workspaces.length > 0 
+              ? result.workspaces 
+              : get().workspaces;
+
+            const currentWorkspaceId = workspaces.find((w) => w.isDefault)?.id 
+              || workspaces[0]?.id 
+              || 'default';
+
+            const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId);
+
+            set({
+              workspaces,
+              currentWorkspaceId,
+              charts: currentWorkspace?.charts || [],
+              syncStatus: 'idle',
+              lastSyncedAt: Date.now(),
+              syncedUserId: user.id,
+            });
+
+            updateLastSynced(user.id);
+          } else {
+            console.error('[DashboardStore] 获取工作区失败:', result.error);
+            set({ syncStatus: 'error', error: result.error || '同步失败' });
+          }
+        } catch (error) {
+          console.error('[DashboardStore] 同步异常:', error);
+          set({ syncStatus: 'error', error: '网络错误' });
+        }
+      },
+
+      // 新增：手动同步当前工作区
+      syncCurrentWorkspace: async () => {
+        const { currentWorkspaceId, workspaces, syncStatus } = get();
+        const { user, isAuthenticated } = useAuthStore.getState();
+
+        if (!isAuthenticated || !user) {
+          set({ error: '请先登录' });
+          return;
+        }
+
+        if (!currentWorkspaceId) {
+          set({ error: '未选择工作区' });
+          return;
+        }
+
+        if (syncStatus === 'syncing') {
+          console.log('[DashboardStore] 正在同步中...');
+          return;
+        }
+
+        set({ syncStatus: 'syncing' });
+
+        try {
+          const workspace = workspaces.find((w) => w.id === currentWorkspaceId);
+          if (!workspace) {
+            set({ syncStatus: 'error', error: '工作区不存在' });
+            return;
+          }
+
+          const result = await workspaceApi.syncConfig(currentWorkspaceId, {
+            charts: workspace.charts || [],
+            layout: workspace.layout || [],
+            theme: workspace.theme || 'light',
+          });
+
+          if (result.success) {
+            set({
+              syncStatus: 'idle',
+              lastSyncedAt: Date.now(),
+              syncedUserId: user.id,
+            });
+            updateLastSynced(user.id);
+          } else {
+            set({ syncStatus: 'error', error: result.error });
+          }
+        } catch (error) {
+          set({ syncStatus: 'error', error: '同步失败' });
+        }
+      },
+
+      // 新增：设置同步状态
+      setSyncStatus: (status) => set({ syncStatus: status }),
+
+      // 新增：清空待同步队列
+      clearPendingChanges: () => {
+        // 在 syncQueue 中实现
+        import('../utils/syncQueue').then(({ clearQueue }) => {
+          clearQueue();
+        });
+      },
+
       refreshChartData: async (id: string) => {
         const state = get();
         const chart = state.charts.find((c) => c.id === id);
@@ -209,7 +348,6 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
 
         const dataEngine = new DataEngine();
         
-        // Fetch fresh data - 转换 DataSourceInfo 为 DataSourceConfig
         const dataSourceConfig = {
           dataset: chart.dataSource.dataset,
           dimensions: chart.dimensions || ['date'],
@@ -220,7 +358,6 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         };
         const rawData = await dataEngine.fetch(dataSourceConfig);
         
-        // Transform data based on chart config
         const transformConfig = chart.transform || {
           xDimension: chart.dimensions?.[0] || 'date',
           metric: chart.metrics?.[0]?.field || 'sales',
@@ -229,7 +366,6 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         
         const chartData = dataEngine.transform(rawData, transformConfig, chart.type);
         
-        // Update chart with new data
         const updatedChart: ChartItem = {
           ...chart,
           data: chartData,
@@ -252,7 +388,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         
         set({ charts: newCharts, workspaces: updatedWorkspaces });
       },
-    }),
+    })),
     {
       name: 'ai-dashboard-storage',
       partialize: (state) => ({
@@ -260,6 +396,9 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         theme: state.theme,
         workspaces: state.workspaces,
         currentWorkspaceId: state.currentWorkspaceId,
+        // 同步元数据也持久化
+        lastSyncedAt: state.lastSyncedAt,
+        syncedUserId: state.syncedUserId,
       }),
     }
   )

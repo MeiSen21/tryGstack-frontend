@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { clearCache } from '../utils/cacheManager';
+import { clearQueue } from '../utils/syncQueue';
 
 interface User {
   id: string;
@@ -13,7 +15,7 @@ interface AuthState {
   isAuthenticated: boolean;
   
   // Actions
-  setAuth: (token: string, user: User) => void;
+  setAuth: (token: string, user: User) => Promise<void>;
   clearAuth: () => void;
   initAuth: () => void;
 }
@@ -25,13 +27,24 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
 
-      setAuth: (token: string, user: User) => {
+      setAuth: async (token: string, user: User) => {
         set({ token, user, isAuthenticated: true });
+        
+        // 登录成功后，触发工作区同步
+        // 通过事件触发，避免循环依赖
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('user:login', { detail: user }));
+        }, 0);
       },
 
       clearAuth: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        
+        // 清除缓存和同步队列
+        clearCache();
+        clearQueue();
+        
         set({ token: null, user: null, isAuthenticated: false });
       },
 
