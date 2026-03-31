@@ -16,6 +16,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
     isLoading, 
     showPanel, 
     currentInput,
+    recommendations,
     getRecommendations, 
     selectRecommendation, 
     closePanel 
@@ -153,6 +154,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
       >
         <RecommendationPanel
           input={currentInput}
+          recommendations={recommendations}
           onSelect={selectRecommendation}
           onCancel={closePanel}
         />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Radio, Spin, Tag, Typography, Space, Empty } from 'antd';
+import { Card, Button, Radio, Tag, Typography, Space, Empty } from 'antd';
 import { 
   LineChartOutlined, 
   BarChartOutlined, 
@@ -13,7 +13,6 @@ import {
   CheckCircleFilled
 } from '@ant-design/icons';
 import type { AIRecommendation, ChartType } from '../../types';
-import { getAIService } from '../../services/aiService';
 
 const { Text, Paragraph } = Typography;
 
@@ -55,52 +54,23 @@ const chartColors: Record<ChartType, string> = {
 
 interface RecommendationPanelProps {
   input: string;
+  recommendations: AIRecommendation[];
   onSelect: (recommendation: AIRecommendation) => void;
   onCancel: () => void;
 }
 
 export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
   input,
+  recommendations,
   onSelect,
   onCancel,
 }) => {
-  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
 
-  // 获取推荐
+  // 重置选中项当推荐列表变化时
   React.useEffect(() => {
-    let cancelled = false;
-
-    const fetchRecommendations = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const aiService = getAIService();
-        const result = await aiService.getRecommendations(input);
-        
-        if (!cancelled) {
-          setRecommendations(result);
-          setSelectedIndex(0);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : '获取推荐失败');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchRecommendations();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [input]);
+    setSelectedIndex(0);
+  }, [recommendations]);
 
   const handleConfirm = () => {
     if (recommendations[selectedIndex]) {
@@ -108,26 +78,7 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
     }
   };
 
-  if (loading) {
-    return (
-      <Card className="bg-white rounded-xl shadow-lg">
-        <div className="flex flex-col items-center justify-center py-16">
-          <Spin size="large" />
-          <Text type="secondary" className="mt-4 text-sm">
-            AI 正在分析需求并推荐最佳可视化方案...
-          </Text>
-        </div>
-      </Card>
-    );
-  }
 
-  if (error) {
-    return (
-      <Card className="bg-white rounded-xl shadow-lg">
-        <Empty description={<Text type="danger">{error}</Text>} />
-      </Card>
-    );
-  }
 
   if (recommendations.length === 0) {
     return (
