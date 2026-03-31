@@ -1,39 +1,39 @@
 import { useEffect, useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme, Modal, message } from 'antd';
 import { useDashboardStore } from './store/dashboardStore';
 import { useAuthStore } from './store/authStore';
 import { parseShareLink } from './services/aiService';
+import { setupNetworkListener } from './utils/syncQueue';
 import Header from './components/Header';
 import InputArea from './components/InputArea';
 import Dashboard from './components/Dashboard';
-import LoginModal from './components/Auth/LoginModal';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import AuthGuard from './components/Auth/AuthGuard';
 import { generateShareLink } from './services/aiService';
 import './index.css';
 
 const { defaultAlgorithm, darkAlgorithm } = antdTheme;
 
-function App() {
+// 主页面布局组件（需要认证）
+function MainLayout() {
   const { theme, charts, addChart, clearAll } = useDashboardStore();
-  const { isAuthenticated, initAuth, setAuth, clearAuth } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
 
-  // Check for shared link on mount and init auth
+  // Check for shared link on mount
   useEffect(() => {
-    initAuth();
-    
     const search = window.location.search;
     if (search) {
       const sharedCharts = parseShareLink(search);
       if (sharedCharts && sharedCharts.length > 0) {
-        // Clear current charts and load shared ones
         clearAll();
         sharedCharts.forEach((chart) => {
           addChart(chart);
         });
         message.success('已加载分享的看板');
-        // Clean up URL
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
@@ -60,15 +60,100 @@ function App() {
     }
   };
 
-  const handleLoginSuccess = (token: string, user: any) => {
-    setAuth(token, user);
-    message.success('欢迎回来！');
-  };
-
   const handleLogout = () => {
-    clearAuth();
+    useAuthStore.getState().clearAuth();
     message.success('已退出登录');
   };
+
+  return (
+    <div
+      className={`min-h-screen flex flex-col ${
+        theme === 'dark' ? 'bg-[#1d1d1f]' : 'bg-background'
+      }`}
+    >
+      <Header 
+        onShare={handleShare} 
+        isAuthenticated={isAuthenticated}
+        onLogout={handleLogout}
+      />
+      <InputArea />
+      <Dashboard />
+
+      {/* Share Modal */}
+      <Modal
+        title="分享看板"
+        open={isShareModalOpen}
+        onCancel={() => setIsShareModalOpen(false)}
+        footer={[
+          <button
+            key="copy"
+            onClick={handleCopyLink}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            复制链接
+          </button>,
+        ]}
+      >
+        <div className="mt-4">
+          <p className={`mb-2 ${theme === 'dark' ? 'text-[#a1a1a6]' : 'text-text-secondary'}`}>
+            复制下方链接分享给他人：
+          </p>
+          <div
+            className={`p-3 rounded-lg break-all text-sm ${
+              theme === 'dark'
+                ? 'bg-[#2d2d2f] text-[#a1a1a6]'
+                : 'bg-neutral-100 text-text-secondary'
+            }`}
+          >
+            {shareLink}
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function App() {
+  const { theme, fetchWorkspaces, syncedUserId } = useDashboardStore();
+  const { initAuth, isAuthenticated, user } = useAuthStore();
+
+  // Initialize auth on mount
+  useEffect(() => {
+    initAuth();
+  }, []);
+
+  // 监听用户登录事件（处理循环依赖）
+  useEffect(() => {
+    const handleLogin = () => {
+      console.log('[App] 检测到用户登录，开始同步工作区');
+      fetchWorkspaces();
+    };
+
+    window.addEventListener('user:login', handleLogin as EventListener);
+    return () => {
+      window.removeEventListener('user:login', handleLogin as EventListener);
+    };
+  }, [fetchWorkspaces]);
+
+  // 已登录时检查是否需要同步（页面刷新时）
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // 如果用户变了，或者没有同步过，触发同步
+      if (!syncedUserId || syncedUserId !== user.id) {
+        console.log('[App] 检测到需要同步工作区');
+        fetchWorkspaces();
+      }
+    }
+  }, [isAuthenticated, user, syncedUserId, fetchWorkspaces]);
+
+  // 设置网络恢复监听
+  useEffect(() => {
+    setupNetworkListener((result) => {
+      if (result.success) {
+        message.success('离线变更已同步到云端');
+      }
+    });
+  }, []);
 
   return (
     <ConfigProvider
@@ -85,58 +170,37 @@ function App() {
         },
       }}
     >
-      <div
-        className={`min-h-screen flex flex-col ${
-          theme === 'dark' ? 'bg-[#1d1d1f]' : 'bg-background'
-        }`}
-      >
-        <Header 
-          onShare={handleShare} 
-          isAuthenticated={isAuthenticated}
-          onLoginClick={() => setIsLoginModalOpen(true)}
-          onLogout={handleLogout}
+      <Routes>
+        {/* 公开路由 - 登录页 */}
+        <Route
+          path="/login"
+          element={
+            <AuthGuard requireAuth={false}>
+              <LoginPage />
+            </AuthGuard>
+          }
         />
-        <InputArea />
-        <Dashboard />
-
-        {/* Share Modal */}
-        <Modal
-          title="分享看板"
-          open={isShareModalOpen}
-          onCancel={() => setIsShareModalOpen(false)}
-          footer={[
-            <button
-              key="copy"
-              onClick={handleCopyLink}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 transition-colors"
-            >
-              复制链接
-            </button>,
-          ]}
-        >
-          <div className="mt-4">
-            <p className={`mb-2 ${theme === 'dark' ? 'text-[#a1a1a6]' : 'text-text-secondary'}`}>
-              复制下方链接分享给他人：
-            </p>
-            <div
-              className={`p-3 rounded-lg break-all text-sm ${
-                theme === 'dark'
-                  ? 'bg-[#2d2d2f] text-[#a1a1a6]'
-                  : 'bg-neutral-100 text-text-secondary'
-              }`}
-            >
-              {shareLink}
-            </div>
-          </div>
-        </Modal>
-
-        {/* Login Modal */}
-        <LoginModal
-          isOpen={isLoginModalOpen}
-          onClose={() => setIsLoginModalOpen(false)}
-          onLoginSuccess={handleLoginSuccess}
+        
+        {/* 公开路由 - 注册页 */}
+        <Route
+          path="/register"
+          element={
+            <AuthGuard requireAuth={false}>
+              <RegisterPage />
+            </AuthGuard>
+          }
         />
-      </div>
+        
+        {/* 受保护路由 - 首页 */}
+        <Route
+          path="/"
+          element={
+            <AuthGuard requireAuth={true}>
+              <MainLayout />
+            </AuthGuard>
+          }
+        />
+      </Routes>
     </ConfigProvider>
   );
 }

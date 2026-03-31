@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   DashboardOutlined,
   ShareAltOutlined,
@@ -19,14 +20,12 @@ import { generateShareLink } from '../../services/aiService';
 interface HeaderProps {
   onShare?: () => void;
   isAuthenticated?: boolean;
-  onLoginClick?: () => void;
   onLogout?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   onShare, 
   isAuthenticated = false, 
-  onLoginClick,
   onLogout 
 }) => {
   const { theme, setTheme, charts, clearAll } = useDashboardStore();
@@ -158,16 +157,15 @@ const Header: React.FC<HeaderProps> = ({
             />
           </Dropdown>
         ) : (
-          <Tooltip title="登录">
+          <Link to="/login">
             <Button
               type="text"
               icon={<LoginOutlined />}
-              onClick={onLoginClick}
               className={theme === 'dark' ? 'text-[#a1a1a6]' : ''}
             >
               登录
             </Button>
-          </Tooltip>
+          </Link>
         )}
       </Space>
     </header>
