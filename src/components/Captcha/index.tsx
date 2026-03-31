@@ -50,30 +50,30 @@ export function Captcha({ onCaptchaLoaded }: CaptchaProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex flex-col">
+    <div className="flex items-center gap-2 h-10">
+      <div className="flex flex-col justify-center">
         <div 
-          className="h-10 w-28 rounded border border-gray-300 bg-white cursor-pointer overflow-hidden"
+          className="h-10 w-28 rounded border border-gray-300 bg-white cursor-pointer flex items-center justify-center overflow-hidden"
           onClick={handleRefresh}
           title="点击刷新验证码"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
-        {/* 开发模式下显示验证码文字，方便测试 */}
-        {isDev && code && (
-          <div className="text-xs text-gray-500 mt-1 text-center font-mono">
-            测试: {code}
-          </div>
-        )}
       </div>
       <button
         type="button"
         onClick={handleRefresh}
         disabled={loading}
-        className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50"
+        className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 h-8 w-8 flex items-center justify-center"
         title="刷新验证码"
       >
         <ReloadOutlined className={`text-gray-500 ${loading ? 'animate-spin' : ''}`} />
       </button>
+      {/* 开发模式下显示验证码文字，方便测试 */}
+      {isDev && code && (
+        <div className="text-xs text-gray-500 font-mono ml-1">
+          {code}
+        </div>
+      )}
     </div>
   );
 }
