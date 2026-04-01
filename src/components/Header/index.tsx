@@ -5,7 +5,6 @@ import {
   ShareAltOutlined,
   MoonOutlined,
   SunOutlined,
-  PlusOutlined,
   DeleteOutlined,
   LoginOutlined,
   LogoutOutlined,
@@ -14,7 +13,7 @@ import {
 import { Button, Tooltip, Space, Popconfirm, Avatar, Dropdown } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { useAuthStore } from '../../store/authStore';
-import WorkspaceSelector from '../WorkspaceSelector';
+
 import { generateShareLink } from '../../services/aiService';
 
 interface HeaderProps {
@@ -53,24 +52,18 @@ const Header: React.FC<HeaderProps> = ({
           : 'bg-white border-border'
       }`}
     >
-      {/* Left: Logo and Workspace Selector */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <DashboardOutlined className="text-white text-lg" />
-          </div>
-          <h1
-            className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-text-primary'
-            }`}
-          >
-            AI Dashboard Builder
-          </h1>
+      {/* Left: Logo */}
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <DashboardOutlined className="text-white text-lg" />
         </div>
-
-        <div className="h-6 w-px bg-border" />
-
-        <WorkspaceSelector />
+        <h1
+          className={`text-lg font-semibold ${
+            theme === 'dark' ? 'text-white' : 'text-text-primary'
+          }`}
+        >
+          AI Dashboard Builder
+        </h1>
       </div>
 
       {/* Right: Actions */}
@@ -114,20 +107,6 @@ const Header: React.FC<HeaderProps> = ({
             className={theme === 'dark' ? 'text-[#a1a1a6]' : ''}
           />
         </Tooltip>
-
-        {/* Add Button */}
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            const inputArea = document.querySelector('.input-area-container');
-            inputArea?.scrollIntoView({ behavior: 'smooth' });
-            const textarea = document.querySelector('.ai-input') as HTMLTextAreaElement;
-            textarea?.focus();
-          }}
-        >
-          新建图表
-        </Button>
 
         <div className="h-6 w-px bg-border" />
 

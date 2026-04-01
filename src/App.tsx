@@ -5,11 +5,10 @@ import { useDashboardStore } from './store/dashboardStore';
 import { useAuthStore } from './store/authStore';
 import { parseShareLink } from './services/aiService';
 import { setupNetworkListener } from './utils/syncQueue';
-import Header from './components/Header';
-import InputArea from './components/InputArea';
-import Dashboard from './components/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import DataCenter from './pages/DataCenter';
+import SidebarLayout from './components/SidebarLayout';
 import AuthGuard from './components/Auth/AuthGuard';
 import { generateShareLink } from './services/aiService';
 import './index.css';
@@ -19,7 +18,6 @@ const { defaultAlgorithm, darkAlgorithm } = antdTheme;
 // 主页面布局组件（需要认证）
 function MainLayout() {
   const { theme, charts, addChart, clearAll } = useDashboardStore();
-  const { isAuthenticated } = useAuthStore();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
 
@@ -38,12 +36,6 @@ function MainLayout() {
       }
     }
   }, []);
-
-  // Apply theme to document
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.style.backgroundColor = theme === 'dark' ? '#1d1d1f' : '#f5f5f7';
-  }, [theme]);
 
   const handleShare = () => {
     const link = generateShareLink(charts);
@@ -66,18 +58,8 @@ function MainLayout() {
   };
 
   return (
-    <div
-      className={`min-h-screen flex flex-col ${
-        theme === 'dark' ? 'bg-[#1d1d1f]' : 'bg-background'
-      }`}
-    >
-      <Header 
-        onShare={handleShare} 
-        isAuthenticated={isAuthenticated}
-        onLogout={handleLogout}
-      />
-      <InputArea />
-      <Dashboard />
+    <SidebarLayout onShare={handleShare} onLogout={handleLogout}>
+      <DataCenter />
 
       {/* Share Modal */}
       <Modal
@@ -109,7 +91,7 @@ function MainLayout() {
           </div>
         </div>
       </Modal>
-    </div>
+    </SidebarLayout>
   );
 }
 
