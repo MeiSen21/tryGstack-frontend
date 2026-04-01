@@ -178,7 +178,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-5 p-5">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-5 p-5 overflow-auto">
         {/* 图表区域 */}
         <div className="min-h-[280px] overflow-hidden">
           <ReactECharts
