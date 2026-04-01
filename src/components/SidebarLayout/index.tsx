@@ -1,6 +1,9 @@
 import React from 'react';
+import { Layout } from 'antd';
 import Sidebar from '../Sidebar';
 import Header from '../Header';
+
+const { Content } = Layout;
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -14,24 +17,24 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
   onLogout 
 }) => {
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
+    <Layout style={{ minHeight: '100vh' }}>
+      {/* 侧边栏 */}
       <Sidebar />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* System Header */}
+      {/* 主内容区 */}
+      <Layout>
+        {/* 系统级 Header */}
         <Header 
           onShare={onShare}
           onLogout={onLogout}
         />
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto">
+        {/* 页面内容 */}
+        <Content style={{ padding: 0, overflow: 'auto' }}>
           {children}
-        </main>
-      </div>
-    </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 

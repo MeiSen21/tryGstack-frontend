@@ -1,10 +1,12 @@
 import React from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { Button, Space, Typography, Divider, Layout } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import WorkspaceSelector from '../../components/WorkspaceSelector';
 import InputArea from '../../components/InputArea';
 import Dashboard from '../../components/Dashboard';
+
+const { Title } = Typography;
 
 const DataCenter: React.FC = () => {
   const { theme } = useDashboardStore();
@@ -17,38 +19,61 @@ const DataCenter: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-full flex flex-col ${
-      theme === 'dark' ? 'bg-[#1d1d1f]' : 'bg-background'
-    }`}>
-      {/* Page Level Header */}
-      <div className={`h-16 px-6 flex items-center justify-between border-b ${
-        theme === 'dark'
-          ? 'bg-[#2d2d2f] border-[#3d3d3f]'
-          : 'bg-white border-gray-200'
-      }`}>
-        {/* Left: Workspace Selector */}
-        <div className="flex items-center gap-4">
-          <h2 className={`text-base font-semibold ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
-          }`}>
+    <div
+      style={{
+        minHeight: '100%',
+        background: theme === 'dark' ? '#141414' : '#f5f5f5',
+      }}
+    >
+      {/* 页面级 Header */}
+      <Layout.Header
+        style={{
+          background: theme === 'dark' ? '#1f1f1f' : '#fff',
+          padding: '0 24px',
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: `1px solid ${theme === 'dark' ? '#303030' : '#f0f0f0'}`,
+          position: 'sticky',
+          top: 0,
+          zIndex: 9,
+        }}
+      >
+        {/* 左侧：标题 + 工作区选择器 */}
+        <Space size="large" align="center">
+          <Title 
+            level={5} 
+            style={{ 
+              margin: 0,
+              color: theme === 'dark' ? '#fff' : '#262626',
+            }}
+          >
             数据中心
-          </h2>
-          <div className="h-5 w-px bg-gray-300 dark:bg-[#3d3d3f]" />
+          </Title>
+          <Divider 
+            type="vertical" 
+            style={{ 
+              height: 24,
+              borderColor: theme === 'dark' ? '#434343' : '#e8e8e8',
+            }} 
+          />
           <WorkspaceSelector />
-        </div>
+        </Space>
 
-        {/* Right: Add Chart Button */}
+        {/* 右侧：新建图表按钮 */}
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={handleAddChart}
+          size="middle"
         >
           新建图表
         </Button>
-      </div>
+      </Layout.Header>
 
-      {/* Page Content */}
-      <div className="flex-1">
+      {/* 页面内容 */}
+      <div style={{ padding: '24px' }}>
         <InputArea />
         <Dashboard />
       </div>
