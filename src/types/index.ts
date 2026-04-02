@@ -279,3 +279,15 @@ export interface RecommendResponse {
   recommendations: AIRecommendation[];
   suggestedDataset?: DatasetType;
 }
+
+/**
+ * 工作区配置
+ */
+export interface WorkspaceConfig {
+  id?: string;
+  name?: string;
+  charts?: any[];
+  layout?: any;
+  theme?: any;
+  [key: string]: any;
+}

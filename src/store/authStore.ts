@@ -20,6 +20,7 @@ interface AuthState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
+  currentWorkspaceId?: string | null;
   
   // Actions
   setAuth: (token: string, user: User) => Promise<void>;
