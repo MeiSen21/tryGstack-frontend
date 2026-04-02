@@ -20,12 +20,12 @@ const { Title, Text } = Typography;
 const DataCenter: React.FC = () => {
   const { theme, charts } = useDashboardStore();
 
-  const handleAddChart = () => {
-    const inputArea = document.querySelector('.input-area-container');
-    inputArea?.scrollIntoView({ behavior: 'smooth' });
-    const textarea = document.querySelector('.ai-input') as HTMLTextAreaElement;
-    textarea?.focus();
-  };
+  // const handleAddChart = () => {
+  //   const inputArea = document.querySelector('.input-area-container');
+  //   inputArea?.scrollIntoView({ behavior: 'smooth' });
+  //   const textarea = document.querySelector('.ai-input') as HTMLTextAreaElement;
+  //   textarea?.focus();
+  // };
 
   return (
     <div
@@ -133,7 +133,7 @@ const DataCenter: React.FC = () => {
             )}
 
             {/* 新建图表按钮 */}
-            <Button
+            {/* <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleAddChart}
@@ -146,7 +146,7 @@ const DataCenter: React.FC = () => {
               }}
             >
               新建图表
-            </Button>
+            </Button> */}
           </Space>
         </Flex>
       </Layout.Header>

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme, Modal, message } from 'antd';
 import { useDashboardStore } from './store/dashboardStore';
 import { useAuthStore } from './store/authStore';
+import { usePermissionStore } from './store/permissionStore';
+import { permissionService } from './services/permissionService';
 import { parseShareLink } from './services/aiService';
 import { setupNetworkListener } from './utils/syncQueue';
 import LoginPage from './pages/LoginPage';
@@ -16,6 +18,59 @@ import { generateShareLink } from './services/aiService';
 import './index.css';
 
 const { defaultAlgorithm, darkAlgorithm } = antdTheme;
+
+// 权限刷新 Hook - 定期刷新权限实现实时同步
+function usePermissionRefresh() {
+  const { user, isAuthenticated } = useAuthStore();
+  const { setPermissions, permissions } = usePermissionStore();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchPermissions = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const res = await permissionService.getUserPermissions(user.id);
+      if (res.success && res.data) {
+        // 只有当权限发生变化时才更新
+        const currentPerms = JSON.stringify(permissions);
+        const newPerms = JSON.stringify(res.data);
+        if (currentPerms !== newPerms) {
+          setPermissions(res.data);
+          console.log('[Permission] 权限已更新:', res.data);
+        }
+      }
+    } catch (error) {
+      console.error('[Permission] 刷新权限失败:', error);
+    }
+  }, [user?.id, setPermissions, permissions]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    // 页面可见性变化时刷新权限
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Permission] 页面可见，刷新权限');
+        fetchPermissions();
+      }
+    };
+
+    // 监听页面可见性变化
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 定期刷新权限（每30秒）
+    intervalRef.current = setInterval(() => {
+      fetchPermissions();
+    }, 30000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isAuthenticated, user?.id, fetchPermissions]);
+}
 
 // 主页面布局组件（需要认证）
 function MainLayout() {
@@ -114,6 +169,9 @@ function AdminLayout() {
 function App() {
   const { theme, fetchWorkspaces, syncedUserId } = useDashboardStore();
   const { initAuth, isAuthenticated, user } = useAuthStore();
+
+  // 权限实时同步
+  usePermissionRefresh();
 
   // Initialize auth on mount
   useEffect(() => {

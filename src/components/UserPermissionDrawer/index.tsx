@@ -19,12 +19,13 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useDashboardStore } from '../../store/dashboardStore';
+import { useAuthStore } from '../../store/authStore';
 import { permissionService } from '../../services/permissionService';
+import { usePermissionStore, defaultPermissions, adminPermissions } from '../../store/permissionStore';
 import type { UserPermissions } from '../../store/permissionStore';
 
 // 权限级别类型
 type PermissionLevel = 'visible' | 'hidden' | 'disabled';
-import { defaultPermissions, adminPermissions } from '../../store/permissionStore';
 
 const { Title, Text } = Typography;
 const { Group: RadioGroup } = Radio;
@@ -65,6 +66,8 @@ export const UserPermissionDrawer: React.FC<UserPermissionDrawerProps> = ({
   onSuccess,
 }) => {
   const { theme } = useDashboardStore();
+  const { user: currentUser } = useAuthStore();
+  const setStorePermissions = usePermissionStore((state) => state.setPermissions);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [schema, setSchema] = useState<PermissionSchema | null>(null);
@@ -112,6 +115,13 @@ export const UserPermissionDrawer: React.FC<UserPermissionDrawerProps> = ({
       if (res.success) {
         message.success('权限配置已保存');
         setHasCustomPermissions(true);
+        
+        // 如果修改的是当前登录用户，实时更新权限状态
+        if (currentUser?.id === userId) {
+          setStorePermissions(permissions);
+          message.info('您的权限已更新，已实时生效');
+        }
+        
         onSuccess?.();
         onClose();
       }
@@ -129,6 +139,13 @@ export const UserPermissionDrawer: React.FC<UserPermissionDrawerProps> = ({
       if (res.success) {
         setPermissions(res.data);
         setHasCustomPermissions(false);
+        
+        // 如果重置的是当前登录用户，实时更新权限状态
+        if (currentUser?.id === userId) {
+          setStorePermissions(res.data);
+          message.info('您的权限已重置为默认，已实时生效');
+        }
+        
         message.success('已重置为默认权限');
       }
     } catch (error) {

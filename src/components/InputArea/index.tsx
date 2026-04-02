@@ -145,13 +145,14 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
                 按 Enter 发送，Shift + Enter 换行
               </Text>
               {canGetRecommendation && (
-                <Tooltip title="发送">
+                <Tooltip title={isGetRecommendationDisabled ? '无权限使用此功能' : '发送'}>
                   <Button
                     type="primary"
                     icon={isLoading ? <LoadingOutlined /> : <SendOutlined />}
                     onClick={handleSubmit}
                     disabled={!input.trim() || isLoading || isGetRecommendationDisabled}
                     loading={isLoading}
+                    style={isGetRecommendationDisabled ? { opacity: 0.5 } : {}}
                   >
                     {isLoading ? '分析中...' : '获取推荐'}
                   </Button>

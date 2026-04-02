@@ -78,8 +78,8 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
       ? [
           {
             key: 'edit',
-            label: '编辑标题',
-            icon: <EditOutlined />,
+            label: <span style={isEditTitleDisabled ? { opacity: 0.5 } : {}}>编辑标题</span>,
+            icon: <EditOutlined style={isEditTitleDisabled ? { opacity: 0.5 } : {}} />,
             onClick: () => !isEditTitleDisabled && setIsEditing(true),
             disabled: isEditTitleDisabled,
           } as any,
@@ -108,12 +108,12 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
                 okButtonProps={{ danger: true }}
                 disabled={isDeleteChartDisabled}
               >
-                <span className={isDeleteChartDisabled ? 'text-gray-400' : 'text-red-500'}>
+                <span style={isDeleteChartDisabled ? { opacity: 0.5 } : { color: '#ff4d4f' }}>
                   删除图表
                 </span>
               </Popconfirm>
             ),
-            icon: <DeleteOutlined className={isDeleteChartDisabled ? 'text-gray-400' : 'text-red-500'} />,
+            icon: <DeleteOutlined style={isDeleteChartDisabled ? { opacity: 0.5 } : { color: '#ff4d4f' }} />,
             danger: true,
             disabled: isDeleteChartDisabled,
           } as any,

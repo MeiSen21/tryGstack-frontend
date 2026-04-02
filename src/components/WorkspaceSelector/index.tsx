@@ -110,6 +110,7 @@ const WorkspaceSelector: React.FC = () => {
                 icon={<PlusOutlined />}
                 onClick={openCreateModal}
                 disabled={isCreateDisabled}
+                style={isCreateDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 新建
               </Button>
@@ -142,6 +143,7 @@ const WorkspaceSelector: React.FC = () => {
                       icon={<EditOutlined />}
                       onClick={(e) => openEditModal(workspace, e)}
                       disabled={isEditDisabled}
+                      style={isEditDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                     />
                   )}
                   {!workspace.isDefault && canDeleteWorkspace && (
@@ -160,6 +162,7 @@ const WorkspaceSelector: React.FC = () => {
                         icon={<DeleteOutlined />}
                         onClick={(e) => e.stopPropagation()}
                         disabled={isDeleteDisabled}
+                        style={isDeleteDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                       />
                     </Popconfirm>
                   )}
