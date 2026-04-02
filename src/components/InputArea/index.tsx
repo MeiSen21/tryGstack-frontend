@@ -1,9 +1,12 @@
 import React, { useState, type KeyboardEvent } from 'react';
 import { SendOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Button, Tooltip, Alert, Modal } from 'antd';
+import { Button, Tooltip, Alert, Modal, Input, Space, Tag, Typography, Card, Flex } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { useAIRecommendations } from '../../hooks/useAIRecommendations';
 import { RecommendationPanel } from '../RecommendationPanel';
+
+const { TextArea } = Input;
+const { Text, Title, Paragraph } = Typography;
 
 interface InputAreaProps {
   onSubmit?: (input: string) => void;
@@ -51,20 +54,31 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
 
   return (
     <>
-      <div className={`input-area-container py-6 px-4 ${theme === 'dark' ? 'bg-[#1d1d1f]' : 'bg-background'}`}>
+      <div 
+        className="input-area-container py-6 px-4"
+        style={{ background: theme === 'dark' ? '#1d1d1f' : '#f5f5f5' }}
+      >
         <div className="max-w-4xl mx-auto">
-          {/* Title */}
-          <div className="text-center mb-6">
-            <h2
-              className={`text-xl font-semibold mb-2 ${
-                theme === 'dark' ? 'text-white' : 'text-text-primary'
-              }`}
+          {/* Title - 使用 antd Typography */}
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <Title 
+              level={4} 
+              style={{ 
+                marginBottom: 8,
+                color: theme === 'dark' ? '#fff' : '#262626'
+              }}
             >
               告诉我你想要什么图表
-            </h2>
-            <p className={theme === 'dark' ? 'text-[#a1a1a6]' : 'text-text-secondary'}>
+            </Title>
+            <Paragraph 
+              type="secondary"
+              style={{ 
+                margin: 0,
+                color: theme === 'dark' ? '#a6a6a6' : '#595959'
+              }}
+            >
               用自然语言描述你的数据需求，AI 会推荐最佳可视化方案
-            </p>
+            </Paragraph>
           </div>
 
           {/* Error Alert */}
@@ -74,34 +88,56 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
               type="error"
               showIcon
               closable
-              className="mb-4"
+              style={{ marginBottom: 16 }}
               onClose={() => useDashboardStore.getState().setError(null)}
             />
           )}
 
-          {/* Input Container */}
-          <div
-            className={`rounded-xl border shadow-sm transition-all duration-200 ${
-              theme === 'dark'
-                ? 'bg-[#2d2d2f] border-[#3d3d3f] focus-within:border-primary'
-                : 'bg-white border-border focus-within:border-primary focus-within:shadow-md'
-            }`}
+          {/* Input Container - 使用 antd Card */}
+          <Card
+            variant="outlined"
+            style={{
+              borderRadius: 12,
+              boxShadow: theme === 'dark' 
+                ? '0 2px 8px rgba(0,0,0,0.3)' 
+                : '0 2px 8px rgba(0,0,0,0.08)',
+              background: theme === 'dark' ? '#2d2d2f' : '#fff',
+              borderColor: theme === 'dark' ? '#434343' : '#e8e8e8',
+            }}
+            styles={{ body: { padding: 0 } }}
           >
-            <textarea
-              className={`ai-input w-full p-4 bg-transparent border-none outline-none resize-none text-base ${
-                theme === 'dark' ? 'text-white placeholder-[#6e6e73]' : 'text-text-primary placeholder-text-tertiary'
-              }`}
-              rows={3}
-              placeholder="例如：最近7天的销售额趋势..."
+            <TextArea
+              className="ai-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              placeholder="例如：最近7天的销售额趋势..."
+              autoSize={{ minRows: 3, maxRows: 5 }}
               disabled={isLoading}
+              style={{
+                border: 'none',
+                borderRadius: '12px 12px 0 0',
+                background: 'transparent',
+                color: theme === 'dark' ? '#fff' : '#262626',
+                fontSize: 15,
+                resize: 'none',
+                padding: '16px 20px',
+              }}
             />
-            <div className="flex items-center justify-between px-4 pb-3">
-              <div className="text-xs text-text-tertiary">
+            <Flex 
+              justify="space-between" 
+              align="center"
+              style={{ 
+                padding: '12px 20px',
+                borderTop: `1px solid ${theme === 'dark' ? '#434343' : '#f0f0f0'}`,
+              }}
+            >
+              <Text 
+                type="secondary" 
+                style={{ fontSize: 12 }}
+              >
                 按 Enter 发送，Shift + Enter 换行
-              </div>
+              </Text>
               <Tooltip title="发送">
                 <Button
                   type="primary"
@@ -113,29 +149,55 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
                   {isLoading ? '分析中...' : '获取推荐'}
                 </Button>
               </Tooltip>
-            </div>
-          </div>
+            </Flex>
+          </Card>
 
-          {/* Example Prompts */}
-          <div className="mt-4 flex flex-wrap gap-3 justify-center">
-            <span className={`text-sm font-medium ${theme === 'dark' ? 'text-[#a1a1a6]' : 'text-[#595959]'}`}>
+          {/* Example Prompts - 使用 antd Space + Tag */}
+          <Space 
+            size="small" 
+            wrap 
+            style={{ 
+              marginTop: 16, 
+              justifyContent: 'center',
+              width: '100%'
+            }}
+          >
+            <Text 
+              type="secondary"
+              style={{ fontSize: 13 }}
+            >
               试试：
-            </span>
+            </Text>
             {examplePrompts.map((prompt) => (
-              <button
+              <Tag
                 key={prompt}
-                className={`text-sm px-3 py-1 rounded-full transition-colors ${
-                  theme === 'dark'
-                    ? 'bg-[#3d3d3f] text-[#a1a1a6] hover:bg-[#4d4d4f]'
-                    : 'bg-white text-text-secondary hover:bg-neutral-200 border border-border'
-                }`}
-                onClick={() => setInput(prompt)}
-                disabled={isLoading}
+                style={{
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: 13,
+                  padding: '4px 12px',
+                  borderRadius: 16,
+                  background: theme === 'dark' ? '#2b2b2b' : '#f5f5f5',
+                  borderColor: theme === 'dark' ? '#434343' : '#d9d9d9',
+                  color: theme === 'dark' ? '#d9d9d9' : '#595959',
+                  opacity: isLoading ? 0.5 : 1,
+                  transition: 'all 0.2s',
+                }}
+                onClick={() => !isLoading && setInput(prompt)}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.borderColor = '#1677ff';
+                    e.currentTarget.style.color = '#1677ff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = theme === 'dark' ? '#434343' : '#d9d9d9';
+                  e.currentTarget.style.color = theme === 'dark' ? '#d9d9d9' : '#595959';
+                }}
               >
                 {prompt}
-              </button>
+              </Tag>
             ))}
-          </div>
+          </Space>
         </div>
       </div>
 
