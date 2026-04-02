@@ -8,8 +8,10 @@ import { setupNetworkListener } from './utils/syncQueue';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DataCenter from './pages/DataCenter';
+import UserManage from './pages/UserManage';
 import SidebarLayout from './components/SidebarLayout';
 import AuthGuard from './components/Auth/AuthGuard';
+import AdminGuard from './components/Auth/AdminGuard';
 import { generateShareLink } from './services/aiService';
 import './index.css';
 
@@ -91,6 +93,20 @@ function MainLayout() {
           </div>
         </div>
       </Modal>
+    </SidebarLayout>
+  );
+}
+
+// 管理员布局组件
+function AdminLayout() {
+  const handleLogout = () => {
+    useAuthStore.getState().clearAuth();
+    message.success('已退出登录');
+  };
+
+  return (
+    <SidebarLayout onLogout={handleLogout}>
+      <UserManage />
     </SidebarLayout>
   );
 }
@@ -180,6 +196,16 @@ function App() {
             <AuthGuard requireAuth={true}>
               <MainLayout />
             </AuthGuard>
+          }
+        />
+        
+        {/* 管理员专属路由 - 用户管理 */}
+        <Route
+          path="/admin/users"
+          element={
+            <AdminGuard>
+              <AdminLayout />
+            </AdminGuard>
           }
         />
       </Routes>

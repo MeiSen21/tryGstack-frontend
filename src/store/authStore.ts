@@ -3,10 +3,16 @@ import { persist } from 'zustand/middleware';
 import { clearCache } from '../utils/cacheManager';
 import { clearQueue } from '../utils/syncQueue';
 
-interface User {
+export type UserRole = 'admin' | 'user';
+export type UserStatus = 'active' | 'disabled';
+
+export interface User {
   id: string;
   email: string;
+  role: UserRole;
+  status: UserStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthState {
@@ -18,11 +24,15 @@ interface AuthState {
   setAuth: (token: string, user: User) => Promise<void>;
   clearAuth: () => void;
   initAuth: () => void;
+  
+  // Getters
+  isAdmin: () => boolean;
+  hasRole: (role: UserRole) => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       isAuthenticated: false,
@@ -59,6 +69,18 @@ export const useAuthStore = create<AuthState>()(
             set({ token: null, user: null, isAuthenticated: false });
           }
         }
+      },
+
+      // 是否是管理员
+      isAdmin: () => {
+        const { user } = get();
+        return user?.role === 'admin';
+      },
+
+      // 检查是否具有指定角色
+      hasRole: (role: UserRole) => {
+        const { user } = get();
+        return user?.role === role;
       },
     }),
     {

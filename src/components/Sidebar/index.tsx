@@ -1,23 +1,40 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
-import { DatabaseOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, TeamOutlined } from '@ant-design/icons';
 import { useDashboardStore } from '../../store/dashboardStore';
+import { useAuthStore } from '../../store/authStore';
 
 const { Sider } = Layout;
 
 const Sidebar: React.FC = () => {
   const { theme } = useDashboardStore();
+  const { isAdmin } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
+  // 基础菜单项（所有用户可见）
+  const baseMenuItems = [
     {
       key: '/',
       icon: <DatabaseOutlined />,
       label: '数据中心',
     },
   ];
+
+  // 管理员专属菜单项
+  const adminMenuItems = [
+    {
+      key: '/admin/users',
+      icon: <TeamOutlined />,
+      label: '用户管理',
+    },
+  ];
+
+  // 根据角色组合菜单项
+  const menuItems = isAdmin() 
+    ? [...baseMenuItems, ...adminMenuItems]
+    : baseMenuItems;
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
