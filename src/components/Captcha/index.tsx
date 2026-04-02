@@ -52,11 +52,13 @@ export function Captcha({ onCaptchaLoaded }: CaptchaProps) {
   return (
     <div className="flex items-center gap-2 h-10">
       <div className="flex flex-col justify-center">
-        <div 
-          className="h-10 w-28 rounded border border-gray-300 bg-white cursor-pointer flex items-center justify-center overflow-hidden"
+        {/* 使用 img 标签避免 XSS，通过 base64 编码 SVG */}
+        <img
+          src={svg ? `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}` : ''}
+          alt="验证码"
+          className="h-10 w-28 rounded border border-gray-300 bg-white cursor-pointer object-contain"
           onClick={handleRefresh}
           title="点击刷新验证码"
-          dangerouslySetInnerHTML={{ __html: svg }}
         />
       </div>
       <button
