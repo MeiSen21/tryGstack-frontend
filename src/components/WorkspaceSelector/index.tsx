@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { DownOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Dropdown, Button, Modal, Form, Input, List, Popconfirm, message } from 'antd';
+import { DownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, FolderOutlined } from '@ant-design/icons';
+import { Dropdown, Button, Modal, Form, Input, List, Popconfirm, message, Space, Typography, Flex } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import type { Workspace } from '../../types';
+
+const { Text } = Typography;
 
 const WorkspaceSelector: React.FC = () => {
   const {
@@ -154,13 +156,62 @@ const WorkspaceSelector: React.FC = () => {
   return (
     <>
       <Dropdown menu={{ items: workspaceItems }} placement="bottomLeft" trigger={['click']}>
-        <Button
-          type="text"
-          className={theme === 'dark' ? 'text-white' : 'text-text-primary'}
+        <Flex
+          align="center"
+          gap={8}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 8,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            background: theme === 'dark' ? '#2b2b2b' : '#f5f5f5',
+            border: `1px solid ${theme === 'dark' ? '#434343' : '#e8e8e8'}`,
+          }}
+          className="workspace-selector-trigger"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = theme === 'dark' ? '#3b3b3b' : '#e8e8e8';
+            e.currentTarget.style.borderColor = '#1677ff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = theme === 'dark' ? '#2b2b2b' : '#f5f5f5';
+            e.currentTarget.style.borderColor = theme === 'dark' ? '#434343' : '#e8e8e8';
+          }}
         >
-          {currentWorkspace?.name || '选择工作区'}
-          <DownOutlined className="ml-1 text-xs" />
-        </Button>
+          <FolderOutlined
+            style={{
+              fontSize: 16,
+              color: theme === 'dark' ? '#a6a6a6' : '#8c8c8c',
+            }}
+          />
+          <Flex vertical style={{ lineHeight: 1.2 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                color: theme === 'dark' ? '#a6a6a6' : '#8c8c8c',
+                lineHeight: '14px',
+              }}
+            >
+              当前工作区
+            </Text>
+            <Text
+              strong
+              style={{
+                fontSize: 14,
+                color: theme === 'dark' ? '#fff' : '#262626',
+                lineHeight: '18px',
+              }}
+            >
+              {currentWorkspace?.name || '选择工作区'}
+            </Text>
+          </Flex>
+          <DownOutlined
+            style={{
+              fontSize: 12,
+              color: theme === 'dark' ? '#a6a6a6' : '#8c8c8c',
+              marginLeft: 4,
+            }}
+          />
+        </Flex>
       </Dropdown>
 
       <Modal
