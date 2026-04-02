@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Dropdown, Popconfirm, Input, Tooltip, message } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
+import { usePermission } from '../../hooks/usePermission';
 import { generateEChartsOption } from '../../utils/chartHelper';
 import DataSourcePanel from '../DataSourcePanel';
 import type { ChartItem, DatasetType, ChartType } from '../../types';
@@ -22,9 +23,16 @@ interface ChartCardProps {
 
 const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
   const { theme, removeChart, updateChartTitle, refreshChartData } = useDashboardStore();
+  const { canView, isDisabled } = usePermission();
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(chart.title);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // 权限检查
+  const canEditTitle = canView('chart', 'editTitle');
+  const canDeleteChart = canView('chart', 'delete');
+  const isEditTitleDisabled = isDisabled('chart', 'editTitle');
+  const isDeleteChartDisabled = isDisabled('chart', 'delete');
 
   // 图表选项
   const chartOption = useMemo(() => {
@@ -63,40 +71,54 @@ const ChartCard: React.FC<ChartCardProps> = ({ chart, isDragging }) => {
     }
   }, [chart.id, chart.dataSource, refreshChartData]);
 
-  // 菜单项
+  // 菜单项 - 根据权限动态生成
   const menuItems = [
-    {
-      key: 'edit',
-      label: '编辑标题',
-      icon: <EditOutlined />,
-      onClick: () => setIsEditing(true),
-    },
+    // 编辑标题
+    ...(canEditTitle
+      ? [
+          {
+            key: 'edit',
+            label: '编辑标题',
+            icon: <EditOutlined />,
+            onClick: () => !isEditTitleDisabled && setIsEditing(true),
+            disabled: isEditTitleDisabled,
+          } as any,
+        ]
+      : []),
+    // 刷新数据
     {
       key: 'refresh',
       label: '刷新数据',
       icon: <ReloadOutlined />,
       onClick: handleRefresh,
     },
-    {
-      type: 'divider' as const,
-    },
-    {
-      key: 'delete',
-      label: (
-        <Popconfirm
-          title="删除图表"
-          description="确定要删除这个图表吗？"
-          onConfirm={() => removeChart(chart.id)}
-          okText="删除"
-          cancelText="取消"
-          okButtonProps={{ danger: true }}
-        >
-          <span className="text-red-500">删除图表</span>
-        </Popconfirm>
-      ),
-      icon: <DeleteOutlined className="text-red-500" />,
-      danger: true,
-    },
+    // 删除图表
+    ...(canDeleteChart
+      ? [
+          { type: 'divider' as const },
+          {
+            key: 'delete',
+            label: (
+              <Popconfirm
+                title="删除图表"
+                description="确定要删除这个图表吗？"
+                onConfirm={() => removeChart(chart.id)}
+                okText="删除"
+                cancelText="取消"
+                okButtonProps={{ danger: true }}
+                disabled={isDeleteChartDisabled}
+              >
+                <span className={isDeleteChartDisabled ? 'text-gray-400' : 'text-red-500'}>
+                  删除图表
+                </span>
+              </Popconfirm>
+            ),
+            icon: <DeleteOutlined className={isDeleteChartDisabled ? 'text-gray-400' : 'text-red-500'} />,
+            danger: true,
+            disabled: isDeleteChartDisabled,
+          } as any,
+        ]
+      : []),
   ];
 
   // 提取数据集类型

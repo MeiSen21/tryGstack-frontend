@@ -4,37 +4,40 @@ import { Layout, Menu } from 'antd';
 import { DatabaseOutlined, TeamOutlined } from '@ant-design/icons';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { useAuthStore } from '../../store/authStore';
+import { usePermission } from '../../hooks/usePermission';
 
 const { Sider } = Layout;
 
 const Sidebar: React.FC = () => {
   const { theme } = useDashboardStore();
   const { isAdmin } = useAuthStore();
+  const { hasMenuAccess } = usePermission();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 基础菜单项（所有用户可见）
-  const baseMenuItems = [
-    {
-      key: '/',
-      icon: <DatabaseOutlined />,
-      label: '数据中心',
-    },
+  // 根据权限动态生成菜单项
+  const menuItems = [
+    // 数据中心菜单 - 根据权限显示
+    ...(hasMenuAccess('datacenter')
+      ? [
+          {
+            key: '/',
+            icon: <DatabaseOutlined />,
+            label: '数据中心',
+          },
+        ]
+      : []),
+    // 用户管理菜单 - 根据权限显示（原管理员专属）
+    ...(hasMenuAccess('userManagement') || isAdmin()
+      ? [
+          {
+            key: '/admin/users',
+            icon: <TeamOutlined />,
+            label: '用户管理',
+          },
+        ]
+      : []),
   ];
-
-  // 管理员专属菜单项
-  const adminMenuItems = [
-    {
-      key: '/admin/users',
-      icon: <TeamOutlined />,
-      label: '用户管理',
-    },
-  ];
-
-  // 根据角色组合菜单项
-  const menuItems = isAdmin() 
-    ? [...baseMenuItems, ...adminMenuItems]
-    : baseMenuItems;
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);

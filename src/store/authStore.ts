@@ -13,6 +13,7 @@ export interface User {
   status: UserStatus;
   createdAt: string;
   updatedAt: string;
+  permissions?: any; // 用户细粒度权限配置
 }
 
 interface AuthState {
@@ -30,6 +31,14 @@ interface AuthState {
   hasRole: (role: UserRole) => boolean;
 }
 
+// 导入 permissionStore（避免循环依赖，使用动态导入）
+const loadPermissions = async (permissions: any) => {
+  if (permissions) {
+    const { usePermissionStore } = await import('./permissionStore');
+    usePermissionStore.getState().setPermissions(permissions);
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -39,6 +48,11 @@ export const useAuthStore = create<AuthState>()(
 
       setAuth: async (token: string, user: User) => {
         set({ token, user, isAuthenticated: true });
+        
+        // 加载用户权限到 permissionStore
+        if (user.permissions) {
+          await loadPermissions(user.permissions);
+        }
         
         // 登录成功后，触发工作区同步
         // 通过事件触发，避免循环依赖
@@ -55,6 +69,11 @@ export const useAuthStore = create<AuthState>()(
         clearCache();
         clearQueue();
         
+        // 重置权限
+        import('./permissionStore').then(({ usePermissionStore }) => {
+          usePermissionStore.getState().resetPermissions();
+        });
+        
         set({ token: null, user: null, isAuthenticated: false });
       },
 
@@ -65,6 +84,11 @@ export const useAuthStore = create<AuthState>()(
           try {
             const user = JSON.parse(userStr);
             set({ token, user, isAuthenticated: true });
+            
+            // 加载用户权限到 permissionStore
+            if (user.permissions) {
+              loadPermissions(user.permissions);
+            }
           } catch {
             set({ token: null, user: null, isAuthenticated: false });
           }
@@ -88,3 +112,5 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+export default useAuthStore;

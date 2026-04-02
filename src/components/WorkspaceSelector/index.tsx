@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, FolderOutlined } from '@ant-design/icons';
 import { Dropdown, Button, Modal, Form, Input, List, Popconfirm, message, Space, Typography, Flex } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
+import { usePermission } from '../../hooks/usePermission';
 import type { Workspace } from '../../types';
 
 const { Text } = Typography;
@@ -16,13 +17,24 @@ const WorkspaceSelector: React.FC = () => {
     removeWorkspace,
     theme,
   } = useDashboardStore();
-
+  
+  const { canView, isDisabled } = usePermission();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [form] = Form.useForm();
 
   const currentWorkspace = workspaces.find((ws) => ws.id === currentWorkspaceId);
+
+  // 权限检查
+  const canCreateWorkspace = canView('workspace', 'create');
+  const canEditWorkspace = canView('workspace', 'edit');
+  const canDeleteWorkspace = canView('workspace', 'delete');
+  
+  const isCreateDisabled = isDisabled('workspace', 'create');
+  const isEditDisabled = isDisabled('workspace', 'edit');
+  const isDeleteDisabled = isDisabled('workspace', 'delete');
 
   const handleCreate = () => {
     form.validateFields().then((values) => {
@@ -91,14 +103,17 @@ const WorkspaceSelector: React.FC = () => {
         <div className="w-64">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <span className="font-medium">工作区</span>
-            <Button
-              type="text"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={openCreateModal}
-            >
-              新建
-            </Button>
+            {canCreateWorkspace && (
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={openCreateModal}
+                disabled={isCreateDisabled}
+              >
+                新建
+              </Button>
+            )}
           </div>
           <List
             dataSource={workspaces}
@@ -120,13 +135,16 @@ const WorkspaceSelector: React.FC = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1 ml-2">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined />}
-                    onClick={(e) => openEditModal(workspace, e)}
-                  />
-                  {!workspace.isDefault && (
+                  {canEditWorkspace && (
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={(e) => openEditModal(workspace, e)}
+                      disabled={isEditDisabled}
+                    />
+                  )}
+                  {!workspace.isDefault && canDeleteWorkspace && (
                     <Popconfirm
                       title="删除工作区"
                       description="确定要删除这个工作区吗？"
@@ -141,6 +159,7 @@ const WorkspaceSelector: React.FC = () => {
                         danger
                         icon={<DeleteOutlined />}
                         onClick={(e) => e.stopPropagation()}
+                        disabled={isDeleteDisabled}
                       />
                     </Popconfirm>
                   )}

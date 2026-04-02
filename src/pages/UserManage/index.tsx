@@ -23,10 +23,12 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   TeamOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { useAuthStore } from '../../store/authStore';
 import { adminService } from '../../services/adminService';
+import { UserPermissionDrawer } from '../../components/UserPermissionDrawer';
 import type { User, UserRole, UserStatus } from '../../store/authStore';
 
 const { Title, Text } = Typography;
@@ -62,6 +64,10 @@ const UserManage: React.FC = () => {
   });
   const [searchKeyword, setSearchKeyword] = useState('');
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
+  
+  // 权限编辑抽屉状态
+  const [permissionDrawerOpen, setPermissionDrawerOpen] = useState(false);
+  const [editingPermissionUser, setEditingPermissionUser] = useState<UserListItem | null>(null);
 
   // 检查权限，非管理员重定向
   useEffect(() => {
@@ -234,6 +240,17 @@ const UserManage: React.FC = () => {
             </Tooltip>
           )}
           
+          <Tooltip title="权限配置">
+            <Button
+              type="text"
+              icon={<SafetyOutlined style={{ color: '#1677ff' }} />}
+              onClick={() => {
+                setEditingPermissionUser(record);
+                setPermissionDrawerOpen(true);
+              }}
+            />
+          </Tooltip>
+          
           <Popconfirm
             title="确认删除"
             description="删除后无法恢复，确定要删除该用户吗？"
@@ -329,6 +346,20 @@ const UserManage: React.FC = () => {
           }}
         />
       </Card>
+      
+      {/* 权限配置抽屉 */}
+      {editingPermissionUser && (
+        <UserPermissionDrawer
+          userId={editingPermissionUser.id}
+          userEmail={editingPermissionUser.email}
+          userRole={editingPermissionUser.role}
+          open={permissionDrawerOpen}
+          onClose={() => {
+            setPermissionDrawerOpen(false);
+            setEditingPermissionUser(null);
+          }}
+        />
+      )}
     </div>
   );
 };

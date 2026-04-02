@@ -3,6 +3,7 @@ import { SendOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Button, Tooltip, Alert, Modal, Input, Space, Tag, Typography, Card, Flex } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { useAIRecommendations } from '../../hooks/useAIRecommendations';
+import { usePermission } from '../../hooks/usePermission';
 import { RecommendationPanel } from '../RecommendationPanel';
 
 const { TextArea } = Input;
@@ -15,6 +16,7 @@ interface InputAreaProps {
 const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
   const [input, setInput] = useState('');
   const { theme, error } = useDashboardStore();
+  const { canView, isDisabled } = usePermission();
   const { 
     isLoading, 
     showPanel, 
@@ -24,6 +26,10 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
     selectRecommendation, 
     closePanel 
   } = useAIRecommendations();
+  
+  // 权限检查
+  const canGetRecommendation = canView('chartCreate', 'getRecommendation');
+  const isGetRecommendationDisabled = isDisabled('chartCreate', 'getRecommendation');
 
   const handleSubmit = async () => {
     if (!input.trim() || isLoading) return;
@@ -138,17 +144,19 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
               >
                 按 Enter 发送，Shift + Enter 换行
               </Text>
-              <Tooltip title="发送">
-                <Button
-                  type="primary"
-                  icon={isLoading ? <LoadingOutlined /> : <SendOutlined />}
-                  onClick={handleSubmit}
-                  disabled={!input.trim() || isLoading}
-                  loading={isLoading}
-                >
-                  {isLoading ? '分析中...' : '获取推荐'}
-                </Button>
-              </Tooltip>
+              {canGetRecommendation && (
+                <Tooltip title="发送">
+                  <Button
+                    type="primary"
+                    icon={isLoading ? <LoadingOutlined /> : <SendOutlined />}
+                    onClick={handleSubmit}
+                    disabled={!input.trim() || isLoading || isGetRecommendationDisabled}
+                    loading={isLoading}
+                  >
+                    {isLoading ? '分析中...' : '获取推荐'}
+                  </Button>
+                </Tooltip>
+              )}
             </Flex>
           </Card>
 
