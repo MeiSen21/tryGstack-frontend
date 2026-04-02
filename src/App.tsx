@@ -19,20 +19,42 @@ import './index.css';
 
 const { defaultAlgorithm, darkAlgorithm } = antdTheme;
 
+// 权限刷新配置常量
+const PERMISSION_CONFIG = {
+  REFRESH_INTERVAL: 30000,  // 权限刷新间隔：30秒
+};
+
 // 权限刷新 Hook - 定期刷新权限实现实时同步
 function usePermissionRefresh() {
   const { user, isAuthenticated } = useAuthStore();
   const { setPermissions, permissions } = usePermissionStore();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 使用 ref 存储权限版本，避免竞态条件
+  const permissionsRef = useRef(permissions);
+  // 使用 ref 标记是否正在请求中
+  const isFetchingRef = useRef(false);
+
+  // 同步 ref 与 state
+  useEffect(() => {
+    permissionsRef.current = permissions;
+  }, [permissions]);
 
   const fetchPermissions = useCallback(async () => {
     if (!user?.id) return;
     
+    // 防止并发请求
+    if (isFetchingRef.current) {
+      console.log('[Permission] 跳过：已有请求在进行中');
+      return;
+    }
+    
+    isFetchingRef.current = true;
+    
     try {
       const res = await permissionService.getUserPermissions(user.id);
       if (res.success && res.data) {
-        // 只有当权限发生变化时才更新
-        const currentPerms = JSON.stringify(permissions);
+        // 使用 ref 获取最新权限，避免闭包陷阱
+        const currentPerms = JSON.stringify(permissionsRef.current);
         const newPerms = JSON.stringify(res.data);
         if (currentPerms !== newPerms) {
           setPermissions(res.data);
@@ -41,8 +63,10 @@ function usePermissionRefresh() {
       }
     } catch (error) {
       console.error('[Permission] 刷新权限失败:', error);
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [user?.id, setPermissions, permissions]);
+  }, [user?.id, setPermissions]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
@@ -61,7 +85,7 @@ function usePermissionRefresh() {
     // 定期刷新权限（每30秒）
     intervalRef.current = setInterval(() => {
       fetchPermissions();
-    }, 30000);
+    }, PERMISSION_CONFIG.REFRESH_INTERVAL);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);

@@ -41,12 +41,37 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<ApiRe
     ...((options.headers as Record<string, string>) || {}),
   };
 
-  const response = await fetch(`${API_BASE_URL}/permissions${url}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/permissions${url}`, {
+      ...options,
+      headers,
+    });
 
-  return response.json();
+    // 检查 HTTP 错误状态
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        data: null as T,
+        error: {
+          code: `HTTP_${response.status}`,
+          message: errorText || `请求失败: ${response.status} ${response.statusText}`,
+        },
+      };
+    }
+
+    return await response.json();
+  } catch (networkError) {
+    // 网络错误处理
+    return {
+      success: false,
+      data: null as T,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: networkError instanceof Error ? networkError.message : '网络请求失败',
+      },
+    };
+  }
 }
 
 /**

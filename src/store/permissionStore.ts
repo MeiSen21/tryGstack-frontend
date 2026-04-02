@@ -97,7 +97,7 @@ export const usePermissionStore = create<PermissionState>()(
         const { permissions } = get();
         const componentFeatures = permissions.features[component as keyof typeof permissions.features];
         if (!componentFeatures) return 'visible';
-        return (componentFeatures as any)[action] ?? 'visible';
+        return (componentFeatures as Record<string, PermissionLevel>)[action] ?? 'visible';
       },
 
       // 判断是否可见（非 hidden）
