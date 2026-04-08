@@ -113,10 +113,10 @@ async function getOrCreateWorkspace(
         }
         localStorage.setItem(storageKey, JSON.stringify(updatedState));
         
-        // 同时更新 store 中的状态
-        const { updateWorkspace, setCurrentWorkspace } = useDashboardStore.getState();
-        updateWorkspace(workspaceId, { id: newId });
-        setCurrentWorkspace(newId);
+        if (storeUpdater.updateWorkspace && storeUpdater.setCurrentWorkspace) {
+          storeUpdater.updateWorkspace(workspaceId, { id: newId });
+          storeUpdater.setCurrentWorkspace(newId);
+        }
       }
       
       return { id: newId, isNew: true };
