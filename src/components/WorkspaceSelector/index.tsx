@@ -3,6 +3,8 @@ import { DownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, FolderOutline
 import { Dropdown, Button, Modal, Form, Input, List, Popconfirm, message, Space, Typography, Flex } from 'antd';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { usePermission } from '../../hooks/usePermission';
+import { workspaceApi } from '../../services/workspaceApi';
+import { useAuthStore } from '../../store/authStore';
 import type { Workspace } from '../../types';
 
 const { Text } = Typography;
@@ -69,11 +71,24 @@ const WorkspaceSelector: React.FC = () => {
     });
   };
 
-  const handleDelete = (workspace: Workspace) => {
+  const handleDelete = async (workspace: Workspace) => {
     if (workspace.isDefault) {
       message.error('默认工作区不能删除');
       return;
     }
+    
+    const { isAuthenticated } = useAuthStore.getState();
+    
+    // 如果用户已登录，先调用后端 API 删除
+    if (isAuthenticated) {
+      const result = await workspaceApi.delete(workspace.id);
+      if (!result.success) {
+        message.error(`删除失败: ${result.error}`);
+        return;
+      }
+    }
+    
+    // 删除本地状态
     removeWorkspace(workspace.id);
     message.success('工作区删除成功');
   };
