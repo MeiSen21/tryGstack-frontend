@@ -191,7 +191,7 @@ function AdminLayout() {
 }
 
 function App() {
-  const { theme, fetchWorkspaces, syncedUserId } = useDashboardStore();
+  const { theme, fetchWorkspaces, syncedUserId, resetStore } = useDashboardStore();
   const { initAuth, isAuthenticated, user } = useAuthStore();
 
   // 权限实时同步
@@ -218,13 +218,18 @@ function App() {
   // 已登录时检查是否需要同步（页面刷新时）
   useEffect(() => {
     if (isAuthenticated && user) {
-      // 如果用户变了，或者没有同步过，触发同步
-      if (!syncedUserId || syncedUserId !== user.id) {
+      // 如果用户变了，先重置状态再同步
+      if (syncedUserId && syncedUserId !== user.id) {
+        console.log('[App] 检测到用户切换，重置状态');
+        resetStore();
+        // 重置后重新获取工作区
+        setTimeout(() => fetchWorkspaces(), 0);
+      } else if (!syncedUserId) {
         console.log('[App] 检测到需要同步工作区');
         fetchWorkspaces();
       }
     }
-  }, [isAuthenticated, user, syncedUserId, fetchWorkspaces]);
+  }, [isAuthenticated, user, syncedUserId, fetchWorkspaces, resetStore]);
 
   // 设置网络恢复监听
   useEffect(() => {

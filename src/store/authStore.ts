@@ -63,12 +63,21 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearAuth: () => {
+        const { user } = get();
+        const userId = user?.id;
+        
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
         // 清除缓存和同步队列
         clearCache();
         clearQueue();
+        
+        // 清除用户专属的工作区数据
+        if (userId) {
+          localStorage.removeItem(`ai-dashboard-storage-${userId}`);
+        }
+        localStorage.removeItem('ai-dashboard-storage-guest');
         
         // 重置权限
         import('./permissionStore').then(({ usePermissionStore }) => {

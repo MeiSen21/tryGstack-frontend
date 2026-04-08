@@ -5,7 +5,7 @@ import { DataEngine } from '../engine/DataEngine';
 import { workspaceApi } from '../services/workspaceApi';
 import { isCacheValid, updateLastSynced } from '../utils/cacheManager';
 import { flushQueue, hasPendingChanges } from '../utils/syncQueue';
-import { withSync } from './withSync';
+import { withSync, setStoreUpdater } from './withSync';
 import { useAuthStore } from './authStore';
 
 interface PendingChart {
@@ -51,6 +51,8 @@ interface DashboardActions {
   syncCurrentWorkspace: () => Promise<void>;
   setSyncStatus: (status: 'idle' | 'syncing' | 'error') => void;
   clearPendingChanges: () => void;
+  // 新增：重置状态（用于用户切换）
+  resetStore: () => void;
 }
 
 const initialState: DashboardState = {
@@ -75,6 +77,49 @@ const initialState: DashboardState = {
   syncStatus: 'idle',
   lastSyncedAt: null,
   syncedUserId: null,
+};
+
+/**
+ * 获取用户隔离的存储配置
+ * 每个用户使用独立的 localStorage key
+ */
+const getPersistConfig = () => {
+  const { user } = useAuthStore.getState();
+  const userId = user?.id;
+  
+  // 已登录用户使用用户ID作为key的一部分，未登录用户使用默认key
+  const storageKey = userId 
+    ? `ai-dashboard-storage-${userId}` 
+    : 'ai-dashboard-storage-guest';
+  
+  return {
+    name: storageKey,
+    partialize: (state: DashboardState) => ({
+      charts: state.charts,
+      theme: state.theme,
+      workspaces: state.workspaces,
+      currentWorkspaceId: state.currentWorkspaceId,
+      lastSyncedAt: state.lastSyncedAt,
+      syncedUserId: state.syncedUserId,
+    }),
+    // 重新加载时验证用户ID是否匹配
+    onRehydrateStorage: () => (state) => {
+      if (state) {
+        const { user } = useAuthStore.getState();
+        const currentUserId = user?.id;
+        
+        // 如果存储的数据属于不同用户，清空状态
+        if (state.syncedUserId && state.syncedUserId !== currentUserId) {
+          console.log('[DashboardStore] 检测到数据属于其他用户，清空状态');
+          state.workspaces = [];
+          state.charts = [];
+          state.currentWorkspaceId = null;
+          state.syncedUserId = null;
+          state.lastSyncedAt = null;
+        }
+      }
+    },
+  };
 };
 
 export const useDashboardStore = create<DashboardState & DashboardActions>()(
@@ -225,11 +270,24 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
           return;
         }
 
-        // 检查缓存是否有效
-        if (isCacheValid()) {
+        // 检查缓存是否有效（仅针对当前用户）
+        const { syncedUserId } = get();
+        const isUserSwitched = syncedUserId && syncedUserId !== user.id;
+        
+        if (!isUserSwitched && isCacheValid()) {
           console.log('[DashboardStore] 缓存有效，使用本地数据');
           set({ syncStatus: 'idle', syncedUserId: user.id });
           return;
+        }
+
+        // 如果用户切换了，清空当前数据
+        if (isUserSwitched) {
+          console.log('[DashboardStore] 检测到用户切换，清空本地数据');
+          set({
+            workspaces: [],
+            charts: [],
+            currentWorkspaceId: null,
+          });
         }
 
         console.log('[DashboardStore] 开始从云端获取工作区...');
@@ -247,14 +305,25 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
           if (result.success && result.workspaces) {
             console.log('[DashboardStore] 获取工作区成功:', result.workspaces.length);
             
-            // 如果云端没有工作区，保留本地默认工作区
-            const workspaces = result.workspaces.length > 0 
-              ? result.workspaces 
-              : get().workspaces;
+            // 使用云端数据，不再回退到本地数据（避免看到其他用户的数据）
+            let workspaces = [...result.workspaces];
+
+            // 如果没有工作区，创建一个默认工作区
+            if (workspaces.length === 0) {
+              const defaultWorkspace: Workspace = {
+                id: `default-${user.id}`,
+                name: '默认工作区',
+                description: '我的默认工作区',
+                charts: [],
+                isDefault: true,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              };
+              workspaces = [defaultWorkspace];
+            }
 
             const currentWorkspaceId = workspaces.find((w) => w.isDefault)?.id 
-              || workspaces[0]?.id 
-              || 'default';
+              || workspaces[0]?.id;
 
             const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId);
 
@@ -339,6 +408,18 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         });
       },
 
+      // 新增：重置状态（用于用户切换）
+      resetStore: () => {
+        console.log('[DashboardStore] 重置状态');
+        set({
+          charts: [],
+          workspaces: [],
+          currentWorkspaceId: null,
+          lastSyncedAt: null,
+          syncedUserId: null,
+        });
+      },
+
       refreshChartData: async (id: string) => {
         const state = get();
         const chart = state.charts.find((c) => c.id === id);
@@ -389,17 +470,16 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
         set({ charts: newCharts, workspaces: updatedWorkspaces });
       },
     })),
-    {
-      name: 'ai-dashboard-storage',
-      partialize: (state) => ({
-        charts: state.charts,
-        theme: state.theme,
-        workspaces: state.workspaces,
-        currentWorkspaceId: state.currentWorkspaceId,
-        // 同步元数据也持久化
-        lastSyncedAt: state.lastSyncedAt,
-        syncedUserId: state.syncedUserId,
-      }),
-    }
+    getPersistConfig()
   )
 );
+
+// 注册 store updater（用于 withSync 回调）
+setStoreUpdater({
+  updateWorkspace: (id, updates) => {
+    useDashboardStore.getState().updateWorkspace(id, updates);
+  },
+  setCurrentWorkspace: (id) => {
+    useDashboardStore.getState().setCurrentWorkspace(id);
+  },
+});

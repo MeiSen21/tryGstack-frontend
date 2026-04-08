@@ -14,6 +14,16 @@ import { workspaceApi } from '../services/workspaceApi';
 import { useAuthStore } from './authStore';
 import type { WorkspaceConfig } from '../types';
 
+// 避免循环依赖，通过事件通知 store 更新
+let storeUpdater: {
+  updateWorkspace?: (id: string, updates: { id: string }) => void;
+  setCurrentWorkspace?: (id: string) => void;
+} = {};
+
+export function setStoreUpdater(updater: typeof storeUpdater) {
+  storeUpdater = updater;
+}
+
 // 防抖时间：2 秒
 const SYNC_DEBOUNCE = 2000;
 
@@ -33,6 +43,13 @@ const syncState: SyncState = {
 };
 
 /**
+ * 获取用户隔离的 localStorage key
+ */
+function getStorageKey(userId: string): string {
+  return userId ? `ai-dashboard-storage-${userId}` : 'ai-dashboard-storage-guest';
+}
+
+/**
  * 获取或创建工作区
  * 如果工作区不存在，自动创建
  */
@@ -40,8 +57,14 @@ async function getOrCreateWorkspace(
   workspaceId: string, 
   userId: string
 ): Promise<{ id: string; isNew: boolean } | null> {
-  const storage = localStorage.getItem('ai-dashboard-storage');
-  if (!storage) return null;
+  // 使用正确的用户隔离 key
+  const storageKey = getStorageKey(userId);
+  const storage = localStorage.getItem(storageKey);
+  
+  if (!storage) {
+    console.warn('[withSync] 本地存储不存在:', storageKey);
+    return null;
+  }
 
   const state = JSON.parse(storage);
   const workspace = state.state?.workspaces?.find(
@@ -53,22 +76,18 @@ async function getOrCreateWorkspace(
     return null;
   }
 
-  // 尝试同步，如果失败（404）则创建
   const config: WorkspaceConfig = {
     charts: workspace.charts || [],
     layout: workspace.layout || [],
     theme: workspace.theme || 'light',
   };
 
-  const result = await workspaceApi.syncConfig(workspaceId, config);
-
-  if (result.success && result.workspace) {
-    return { id: workspaceId, isNew: false };
-  }
-
-  // 同步失败，可能是工作区不存在，尝试创建
-  if (result.error?.includes('不存在') || result.error?.includes('404')) {
-    console.log('[withSync] 工作区不存在，创建新工作区:', workspace.name);
+  // 首先尝试直接创建（新用户场景）
+  // 检查 workspaceId 是否是本地生成的（不含横线或长度较短）
+  const isLocalId = workspaceId.startsWith('default-') || workspaceId.length < 30;
+  
+  if (isLocalId) {
+    console.log('[withSync] 检测到本地工作区，直接创建到后端:', workspace.name);
     
     const createResult = await workspaceApi.create(
       workspace.name || '默认工作区',
@@ -92,7 +111,60 @@ async function getOrCreateWorkspace(
         if (updatedState.state.currentWorkspaceId === workspaceId) {
           updatedState.state.currentWorkspaceId = newId;
         }
-        localStorage.setItem('ai-dashboard-storage', JSON.stringify(updatedState));
+        localStorage.setItem(storageKey, JSON.stringify(updatedState));
+        
+        // 同时更新 store 中的状态
+        const { updateWorkspace, setCurrentWorkspace } = useDashboardStore.getState();
+        updateWorkspace(workspaceId, { id: newId });
+        setCurrentWorkspace(newId);
+      }
+      
+      return { id: newId, isNew: true };
+    } else {
+      console.error('[withSync] 创建工作区失败:', createResult.error);
+      return null;
+    }
+  }
+
+  // 已有后端 ID 的工作区，尝试同步更新
+  console.log('[withSync] 尝试同步已有工作区:', workspaceId);
+  const result = await workspaceApi.syncConfig(workspaceId, config);
+
+  if (result.success && result.workspace) {
+    return { id: workspaceId, isNew: false };
+  }
+
+  // 同步失败且是 404，尝试重新创建
+  if (result.error?.includes('不存在') || result.error?.includes('404')) {
+    console.log('[withSync] 工作区不存在，重新创建:', workspace.name);
+    
+    const createResult = await workspaceApi.create(
+      workspace.name || '默认工作区',
+      workspace.description,
+      config
+    );
+
+    if (createResult.success && createResult.workspace) {
+      console.log('[withSync] 工作区创建成功:', createResult.workspace.id);
+      
+      const newId = createResult.workspace.id;
+      
+      const updatedState = JSON.parse(storage);
+      const wsIndex = updatedState.state.workspaces.findIndex(
+        (w: any) => w.id === workspaceId
+      );
+      if (wsIndex >= 0) {
+        updatedState.state.workspaces[wsIndex].id = newId;
+        if (updatedState.state.currentWorkspaceId === workspaceId) {
+          updatedState.state.currentWorkspaceId = newId;
+        }
+        localStorage.setItem(storageKey, JSON.stringify(updatedState));
+        
+        // 通过回调更新 store（避免循环依赖）
+        if (storeUpdater.updateWorkspace && storeUpdater.setCurrentWorkspace) {
+          storeUpdater.updateWorkspace(workspaceId, { id: newId });
+          storeUpdater.setCurrentWorkspace(newId);
+        }
       }
       
       return { id: newId, isNew: true };
